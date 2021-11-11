@@ -42,7 +42,6 @@ pub mod export;
 #[cfg(target_arch = "wasm32")]
 pub use crate::export::{do_instantiate, do_process_msg, do_query};
 
-
 pub use kelk_derive::kelk_derive;
 
 // Use `wee_alloc` as the global allocator.

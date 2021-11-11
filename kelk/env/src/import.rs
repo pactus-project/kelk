@@ -2,7 +2,7 @@ use crate::context::ContextAPI;
 use crate::error::KelkError;
 use crate::params::*;
 use kelk_lib::alloc::vec::Vec;
-use kelk_lib::storage::{Storage, Error};
+use kelk_lib::storage::{Error, Storage};
 
 /// The raw return code returned by the host side.
 #[derive(Debug, Eq, PartialEq)]
@@ -54,7 +54,6 @@ impl Storage for ContextExt {
         }
         Ok(vec)
     }
-
 }
 
 impl ContextAPI for ContextExt {

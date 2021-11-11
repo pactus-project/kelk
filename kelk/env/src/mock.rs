@@ -5,10 +5,10 @@ use crate::{
     error::KelkError,
     params::ParamType,
 };
+use kelk_lib;
 use kelk_lib::alloc::vec::Vec;
 use kelk_lib::mock::MockStorage;
 use kelk_lib::storage::{Error, Storage};
-use kelk_lib;
 
 /// `MockContextAPI` mocks the APIs for testing purpose.
 pub struct MockContextAPI {
