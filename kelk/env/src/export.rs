@@ -25,18 +25,16 @@ extern "C" fn deallocate(ptr_u64: u64) {
     Pointer::from_u64(ptr_u64).deallocate();
 }
 
-/// TODO
+/// do_instantiate should be wrapped in an external "C" export,
+/// containing a contract-specific function as arg.
 pub fn do_instantiate<E: Encode>(instantiate_fn: &dyn Fn(Context) -> E) -> u32 {
     let ctx = make_context();
     instantiate_fn(ctx.as_ref());
     0
 }
 
-/// TODO: UPDATE MY COMMENT
-/// do_process_msg should be wrapped in an external "C" export, containing a contract-specific function as arg
-///
-/// - `M`: message type for request
-/// - `E`: error type for responses
+/// do_process_msg should be wrapped in an external "C" export,
+/// containing a contract-specific function as arg.
 pub fn do_process_msg<'a, D: Decode<'a>, E: Encode>(
     process_msg_fn: &dyn Fn(Context, D) -> E,
     msg_ptr: u64,
@@ -50,7 +48,8 @@ pub fn do_process_msg<'a, D: Decode<'a>, E: Encode>(
     result_to_ptr(res)
 }
 
-/// TODO
+/// do_query should be wrapped in an external "C" export,
+/// containing a contract-specific function as arg.
 pub fn do_query<'a, D: Decode<'a>, E: Encode>(
     query_fn: &dyn Fn(Context, D) -> E,
     msg_ptr: u64,

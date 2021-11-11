@@ -16,23 +16,28 @@ pub enum Error {
 
 macro_rules! impl_num {
     ($ty:ty, $size:literal, $sread_fn:ident, $swrite_fn:ident) => {
-        /// reads $size byte(s) from storage file at the given offset and converts it to $ty.
-        #[inline]
-        fn $sread_fn(&self, offset: u32) -> Result<$ty, Error> {
-            Ok(<$ty>::from_be_bytes(
-                self.sread(offset, $size)?.try_into().unwrap(),
-            ))
+        doc_comment! {
+            concat!("reads ", stringify!($size), " byte(s) from storage file at the given offset and converts it to ", stringify!($ty),"."
+            ),
+            #[inline]
+            fn $sread_fn(&self, offset: u32) -> Result<$ty, Error> {
+                Ok(<$ty>::from_be_bytes(
+                    self.sread(offset, $size)?.try_into().unwrap(),
+                ))
+            }
         }
 
-        /// converts $ty to $size byte(s) and writes into storage file at the given offset.
-        #[inline]
-        fn $swrite_fn(&self, offset: u32, value: $ty) -> Result<(), Error> {
-            self.swrite(offset, &value.to_be_bytes())
+        doc_comment! {
+                concat!("converts ", stringify!($ty)," to ", stringify!($size), " byte(s) and writes into storage file at the given offset."
+                ),
+            #[inline]
+            fn $swrite_fn(&self, offset: u32, value: $ty) -> Result<(), Error> {
+                self.swrite(offset, &value.to_be_bytes())
+            }
         }
     };
 }
 
-/// TODO: implementing Serde? Is it possible?
 /// Storage trait
 pub trait Storage {
     impl_num!(u8, 1, sread_u8, swrite_u8);
