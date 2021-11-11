@@ -50,8 +50,22 @@ pub fn do_process_msg<'a, D: Decode<'a>, E: Encode>(
     result_to_ptr(res)
 }
 
+/// TODO
+pub fn do_query<'a, D: Decode<'a>, E: Encode>(
+    query_fn: &dyn Fn(Context, D) -> E,
+    msg_ptr: u64,
+) -> u64 {
+    let ptr = Pointer::from_u64(msg_ptr);
+    let buf = unsafe { ptr.to_slice() };
+    let msg = minicbor::decode(buf).expect("Decoding failed");
+    let ctx = make_context();
+    let res = query_fn(ctx.as_ref(), msg);
+
+    result_to_ptr(res)
+}
+
 fn result_to_ptr<E: Encode>(res: E) -> u64 {
-    let mut vec = alloc::vec::Vec::new();
+    let mut vec = kelk_lib::alloc::vec::Vec::new();
     minicbor::encode(res, &mut vec).expect("Encoding failed");
 
     Pointer::release_buffer(vec).as_u64()
