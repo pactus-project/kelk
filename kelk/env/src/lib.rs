@@ -23,7 +23,6 @@
     unused_extern_crates
 )]
 
-
 pub mod context;
 pub mod error;
 pub mod mock;
