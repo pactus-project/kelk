@@ -180,9 +180,9 @@ mod tests {
         mock.write_string(3, "foo", 5).unwrap();
         mock.write_string(8, "fooo", 3).unwrap();
 
-        let s1=mock.read_string(0, 3).unwrap();
-        let s2=mock.read_string(3, 5).unwrap();
-        let s3=mock.read_string(8, 3).unwrap();
+        let s1 = mock.read_string(0, 3).unwrap();
+        let s2 = mock.read_string(3, 5).unwrap();
+        let s3 = mock.read_string(8, 3).unwrap();
 
         assert_eq!(s1, "foo");
         assert_eq!(s2, "foo");
