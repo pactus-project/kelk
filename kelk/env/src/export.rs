@@ -1,15 +1,11 @@
-//! Kelk public API
+//! Exported WASM functions
 //!
-//! `do_deploy`, `do_process` and `do_query`
+//! `do_instantiate`, `do_process` and `do_query`
 //! should be wrapped with a extern "C" entry point including
 //! the contract-specific function pointer.
-//! This is done via the `#[entry_point]` macro attribute.
+//! This is done via the `#[kelk_derive(...)]` macro attribute.
 
-use crate::context::{Context, OwnedContext};
-use crate::import::ContextExt;
 use crate::memory::Pointer;
-use crate::storage::Storage;
-use alloc::boxed::Box;
 use minicbor::{Decode, Encode};
 
 /// allocate reserves the given number of bytes in wasm memory and returns a pointer
@@ -27,54 +23,49 @@ extern "C" fn deallocate(ptr_u64: u64) {
     Pointer::from_u64(ptr_u64).deallocate();
 }
 
-/// do_instantiate should be wrapped in an external "C" export,
+/// `do_instantiate` should be wrapped in an external "C" export,
 /// containing a contract-specific function as arg.
-pub fn do_instantiate<'a, D: Decode<'a>, E: Encode>(
-    instantiate_fn: &dyn Fn(Context, D) -> Result<(), E>,
+pub fn do_instantiate<'a, T, D: Decode<'a, ()>, E: Encode<()>>(
+    instantiate_fn: &dyn Fn(T, D) -> Result<(), E>,
+    ctx: T,
     msg_ptr: u64,
 ) -> u64 {
-    do_execute(instantiate_fn, msg_ptr)
+    do_execute(instantiate_fn, ctx, msg_ptr)
 }
 
-/// do_process should be wrapped in an external "C" export,
+/// `do_process` should be wrapped in an external "C" export,
 /// containing a contract-specific function as arg.
-pub fn do_process<'a, D: Decode<'a>, E: Encode>(
-    process_fn: &dyn Fn(Context, D) -> Result<(), E>,
+pub fn do_process<'a, T, D: Decode<'a, ()>, E: Encode<()>>(
+    process_fn: &dyn Fn(T, D) -> Result<(), E>,
+    ctx: T,
     msg_ptr: u64,
 ) -> u64 {
-    do_execute(process_fn, msg_ptr)
+    do_execute(process_fn, ctx, msg_ptr)
 }
 
-/// do_query should be wrapped in an external "C" export,
+/// `do_query` should be wrapped in an external "C" export,
 /// containing a contract-specific function as arg.
-pub fn do_query<'a, D: Decode<'a>, R: Encode, E: Encode>(
-    query_fn: &dyn Fn(Context, D) -> Result<R, E>,
+pub fn do_query<'a, T, D: Decode<'a, ()>, R: Encode<()>, E: Encode<()>>(
+    query_fn: &dyn Fn(T, D) -> Result<R, E>,
+    ctx: T,
     msg_ptr: u64,
 ) -> u64 {
-    do_execute(query_fn, msg_ptr)
+    do_execute(query_fn, ctx, msg_ptr)
 }
 
-fn do_execute<'a, D: Decode<'a>, R: Encode, E: Encode>(
-    func: &dyn Fn(Context, D) -> Result<R, E>,
+fn do_execute<'a, T, D: Decode<'a, ()>, R: Encode<()>, E: Encode<()>>(
+    func: &dyn Fn(T, D) -> Result<R, E>,
+    ctx: T,
     msg_ptr: u64,
 ) -> u64 {
     let ptr = Pointer::from_u64(msg_ptr);
     let buf = unsafe { ptr.to_slice() };
-    let msg = minicbor::decode(buf).expect("Decoding failed");
-    let ctx = make_context();
-    let res = func(ctx.as_ref(), msg);
+    let msg = minicbor::decode(&buf).expect("Decoding failed");
+    let res = func(ctx, msg);
     let mut vec = crate::alloc::vec::Vec::new();
     minicbor::encode(res, &mut vec).expect("Encoding failed");
 
     Pointer::release_buffer(vec).as_u64()
-}
-
-/// Make context instance
-pub(crate) fn make_context() -> OwnedContext<ContextExt> {
-    OwnedContext {
-        blockchain: ContextExt::new(),
-        storage: Storage::new(Box::new(ContextExt::new())),
-    }
 }
 
 #[cfg(test)]
@@ -102,7 +93,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_instantiate(
-            &|_: Context, _: i32| -> Result<(), i32> { Ok(()) },
+            &|_: (), _: i32| -> Result<(), i32> { Ok(()) },
+            (),
             msg_ptr.as_u64(),
         );
 
@@ -116,7 +108,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_instantiate(
-            &|_: Context, _: i32| -> Result<(), i32> { Err(0x0e) },
+            &|_: (), _: i32| -> Result<(), i32> { Err(0x0e) },
+            (),
             msg_ptr.as_u64(),
         );
 
@@ -130,7 +123,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_process(
-            &|_: Context, _: i32| -> Result<(), i32> { Ok(()) },
+            &|_: (), _: i32| -> Result<(), i32> { Ok(()) },
+            (),
             msg_ptr.as_u64(),
         );
 
@@ -144,7 +138,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_process(
-            &|_: Context, _: i32| -> Result<(), i32> { Err(0x0e) },
+            &|_: (), _: i32| -> Result<(), i32> { Err(0x0e) },
+            (),
             msg_ptr.as_u64(),
         );
 
@@ -158,7 +153,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_query(
-            &|_: Context, _: i32| -> Result<&str, i32> { Ok("foo") },
+            &|_: (), _: i32| -> Result<&str, i32> { Ok("foo") },
+            (),
             msg_ptr.as_u64(),
         );
 
@@ -172,7 +168,8 @@ mod tests {
         let msg_ptr = Pointer::release_buffer(msg_data);
 
         let res_ptr = do_query(
-            &|_: Context, _: i32| -> Result<&str, i32> { Err(0x0e) },
+            &|_: (), _: i32| -> Result<&str, i32> { Err(0x0e) },
+            (),
             msg_ptr.as_u64(),
         );
 
