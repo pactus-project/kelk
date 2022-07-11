@@ -23,6 +23,14 @@
     unused_extern_crates
 )]
 
-pub mod collections;
+pub mod blockchain;
+pub mod context;
+pub mod storage;
+
+pub use kelk_derive::kelk_derive;
 
 pub extern crate alloc;
+
+#[macro_use]
+extern crate doc_comment;
+

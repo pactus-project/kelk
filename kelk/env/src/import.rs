@@ -4,7 +4,7 @@
 //! blockchain and the storage file.
 
 use crate::alloc::vec::Vec;
-use crate::api::KelkAPI;
+use crate::api::{BlockchainAPI, StorageAPI};
 use crate::error::Error;
 
 #[cfg(not(test))]
@@ -42,10 +42,18 @@ extern "C" {
     fn get_param(param_id: u32, ptr: u32, len: u32) -> i32;
 }
 
-pub(crate) struct Kelk {}
+/// The instant of Kelk.
+pub struct Kelk {}
 
 
-impl KelkAPI for Kelk {
+impl Kelk {
+    /// creates a new instance of Kelk.
+    pub fn new() -> Self {
+        Self{}
+    }
+}
+
+impl StorageAPI for Kelk {
     fn write(&self, offset: u32, data: &[u8]) -> Result<(), Error> {
         let ptr = data.as_ptr() as u32;
         let len = data.len() as u32;
@@ -67,7 +75,9 @@ impl KelkAPI for Kelk {
         }
         Ok(vec.to_vec())
     }
+}
 
+impl BlockchainAPI for Kelk {
     fn get_param<'a>(&self, param_id: u32) -> Result<Vec<u8>, Error> {
         let len = 32; // maximum size of parameter value is 32 bytes
         let vec = crate::alloc::vec![0; len as usize];

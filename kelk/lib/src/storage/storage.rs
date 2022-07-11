@@ -1,13 +1,13 @@
 //! Storage trait to read and write primitives
 
-use crate::error::Error;
-use ::core::result::Result;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::mem::{self, size_of};
+use core::result::Result;
 use core::slice;
 use core::str::from_utf8;
+use kelk_env::{Error, StorageAPI};
 
 macro_rules! impl_num {
     ($ty:ty, $size:literal, $read_fn:ident, $write_fn:ident) => {
@@ -31,15 +31,6 @@ macro_rules! impl_num {
             }
         }
     };
-}
-
-/// the storage APIs that provided by the host
-pub trait StorageAPI {
-    /// reads bytes from the storage file at the given `offset` up to the given `length`
-    fn read(&self, offset: u32, length: u32) -> Result<Vec<u8>, Error>;
-
-    /// writes `data` into the storage file at the given `offset`
-    fn write(&self, offset: u32, data: &[u8]) -> Result<(), Error>;
 }
 
 /// Storage object
@@ -130,9 +121,10 @@ impl Storage {
     }
 }
 
+
 #[cfg(test)]
-mod tests {
-    use crate::mock::mock_storage;
+pub mod tests {
+    use crate::storage::mock::mock_storage;
 
     #[test]
     fn test_negative_integers() {

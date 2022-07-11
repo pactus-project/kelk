@@ -26,18 +26,22 @@
 pub mod api;
 pub mod error;
 
+pub use api::BlockchainAPI;
+pub use api::StorageAPI;
+pub use error::Error;
+
+
+
 #[cfg(target_arch = "wasm32")]
 mod memory;
 
 #[cfg(target_arch = "wasm32")]
-mod import;
+pub mod import;
 
 #[cfg(target_arch = "wasm32")]
 pub mod export;
 
 #[cfg(target_arch = "wasm32")]
 pub use crate::export::{do_instantiate, do_process, do_query};
-
-pub use kelk_derive::kelk_derive;
 
 pub extern crate alloc;
