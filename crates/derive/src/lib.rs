@@ -41,13 +41,13 @@ pub fn kelk_derive(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
         mod __wasm_export_{name} {{
             #[no_mangle]
             extern "C" fn {name}(msg_ptr: u64) -> u64 {{
-                let ctx = kelk_lib::context::OwnedContext {{
-                    storage: kelk_lib::storage::Storage::new(
-                        kelk_lib::alloc::boxed::Box::new(kelk_env::import::Kelk::new())),
-                    blockchain: kelk_lib::blockchain::Blockchain::new(
-                        kelk_lib::alloc::boxed::Box::new(kelk_env::import::Kelk::new())),
+                let ctx = kelk::context::OwnedContext {{
+                    storage: kelk::storage::Storage::new(
+                        kelk::alloc::boxed::Box::new(kelk::Kelk::new())),
+                    blockchain: kelk::blockchain::Blockchain::new(
+                        kelk::alloc::boxed::Box::new(kelk::Kelk::new())),
                 }};
-                kelk_env::do_{name}(&super::{name}, ctx.as_ref(), msg_ptr)
+                kelk::do_{name}(&super::{name}, ctx.as_ref(), msg_ptr)
             }}
         }}
     "##,

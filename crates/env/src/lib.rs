@@ -42,6 +42,6 @@ pub mod import;
 pub mod export;
 
 #[cfg(target_arch = "wasm32")]
-pub use crate::export::{do_instantiate, do_process, do_query};
+pub use crate::import::{do_instantiate, do_process, do_query};
 
 pub extern crate alloc;

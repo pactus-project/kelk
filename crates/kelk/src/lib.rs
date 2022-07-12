@@ -29,6 +29,9 @@ pub mod storage;
 
 pub use kelk_derive::kelk_derive;
 
+#[cfg(target_arch = "wasm32")]
+pub use kelk_env::import::*;
+
 pub extern crate alloc;
 
 #[macro_use]

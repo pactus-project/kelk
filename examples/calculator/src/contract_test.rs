@@ -1,5 +1,5 @@
 use super::*;
-use kelk_lib::storage::mock::mock_storage;
+use kelk::context::mock_context;
 
 #[test]
 fn test_add() {

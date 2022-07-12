@@ -1,26 +1,96 @@
-//! Exported WASM functions
+//! Imported WASM functions
 //!
-//! `do_instantiate`, `do_process` and `do_query`
-//! should be wrapped with a extern "C" entry point including
-//! the contract-specific function pointer.
-//! This is done via the `#[kelk_derive(...)]` macro attribute.
+//! Contract actors can call this imported function to interact with the
+//! blockchain and the storage file.
 
+use crate::alloc::vec::Vec;
+use crate::api::{BlockchainAPI, StorageAPI};
+use crate::error::Error;
 use crate::memory::Pointer;
 use minicbor::{Decode, Encode};
 
-/// allocate reserves the given number of bytes in wasm memory and returns a pointer
-/// to a Pointer defining this data. This space is managed by the calling process
-/// and should be accompanied by a corresponding deallocate
-#[no_mangle]
-extern "C" fn allocate(size: u32) -> u64 {
-    Pointer::allocate(size).as_u64()
+#[cfg(not(test))]
+#[link(wasm_import_module = "zarb")]
+extern "C" {
+    /// writes data at given offset of storage file.
+    ///
+    /// # Arguments
+    ///
+    /// `offset` is the offset of data in the storage file.
+    /// `ptr` is the location in sandbox memory where data should be read from.
+    /// `len` is the length of data.
+    ///
+    /// If the operation is successful it returns 0, otherwise it reruns the error code.
+    fn write_storage(offset: u32, ptr: u32, len: u32) -> i32;
+    /// reads data from the given offset of storage file.
+    ///
+    /// # Arguments
+    ///
+    /// `offset` is the offset of data in the storage file.
+    /// `ptr` is the location in sandbox memory where data should be written to.
+    /// `len` is the length of data.
+    ///
+    /// If the operation is successful it returns 0, otherwise it reruns the error code.
+    fn read_storage(offset: u32, ptr: u32, len: u32) -> i32;
+
+    /// gets parameter value from the host.
+    ///
+    /// # Arguments
+    ///
+    /// `param_id` is the parameter ID that is known for the host.
+    /// `ptr` is the location in sandbox memory where data should be written to.
+    /// `len` is the length of data.
+    ///
+    /// If the operation is successful it returns 0, otherwise it reruns the error code.
+    fn get_param(param_id: u32, ptr: u32, len: u32) -> i32;
 }
 
-/// deallocate expects a pointer to a Pointer created with allocate.
-/// It will free both the Pointer and the memory referenced by the Pointer.
-#[no_mangle]
-extern "C" fn deallocate(ptr_u64: u64) {
-    Pointer::from_u64(ptr_u64).deallocate();
+/// The instant of Kelk.
+pub struct Kelk {}
+
+impl Kelk {
+    /// creates a new instance of Kelk.
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl StorageAPI for Kelk {
+    fn write(&self, offset: u32, data: &[u8]) -> Result<(), Error> {
+        let ptr = data.as_ptr() as u32;
+        let len = data.len() as u32;
+
+        let code = unsafe { write_storage(offset, ptr, len) };
+        if code != 0 {
+            return Err(Error::HostError(code));
+        }
+        Ok(())
+    }
+
+    fn read<'a>(&self, offset: u32, len: u32) -> Result<Vec<u8>, Error> {
+        let vec = crate::alloc::vec![0; len as usize];
+        let ptr = vec.as_ptr() as u32;
+
+        let code = unsafe { read_storage(offset, ptr, len) };
+        if code != 0 {
+            return Err(Error::HostError(code));
+        }
+        Ok(vec.to_vec())
+    }
+}
+
+impl BlockchainAPI for Kelk {
+    fn get_param<'a>(&self, param_id: u32) -> Result<Vec<u8>, Error> {
+        let len = 32; // maximum size of parameter value is 32 bytes
+        let vec = crate::alloc::vec![0; len as usize];
+        let ptr = vec.as_ptr() as u32;
+
+        let code = unsafe { get_param(param_id, ptr, len) };
+        if code != 0 {
+            return Err(Error::HostError(code));
+        }
+        Ok(vec.to_vec())
+    }
 }
 
 /// `do_instantiate` should be wrapped in an external "C" export,
@@ -66,6 +136,24 @@ fn do_execute<'a, T, D: Decode<'a, ()>, R: Encode<()>, E: Encode<()>>(
     minicbor::encode(res, &mut vec).expect("Encoding failed");
 
     Pointer::release_buffer(vec).as_u64()
+}
+
+/// For testing
+#[cfg(test)]
+pub unsafe fn write_storage(_offset: u32, _ptr: u32, _len: u32) -> i32 {
+    0
+}
+
+/// For testing
+#[cfg(test)]
+pub unsafe fn read_storage(_offset: u32, _ptr: u32, _len: u32) -> i32 {
+    0
+}
+
+/// For testing
+#[cfg(test)]
+pub unsafe fn get_param(_param_id: u32, _ptr: u32, _len: u32) -> i32 {
+    0
 }
 
 #[cfg(test)]

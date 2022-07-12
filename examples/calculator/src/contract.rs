@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::message::{ProcessMsg, QueryMsg, QueryRsp};
-use kelk_lib::kelk_derive;
-use kelk_lib::context::Context;
+use kelk::kelk_derive;
+use kelk::context::Context;
 
 fn add(ctx: Context, a: i32, b: i32) -> Result<(), Error> {
     ctx.storage
