@@ -121,7 +121,6 @@ impl Storage {
     }
 }
 
-
 #[cfg(test)]
 pub mod tests {
     use crate::storage::mock::mock_storage;

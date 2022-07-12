@@ -30,8 +30,6 @@ pub use api::BlockchainAPI;
 pub use api::StorageAPI;
 pub use error::Error;
 
-
-
 #[cfg(target_arch = "wasm32")]
 mod memory;
 

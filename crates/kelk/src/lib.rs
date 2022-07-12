@@ -22,6 +22,7 @@
     trivial_numeric_casts,
     unused_extern_crates
 )]
+#![allow(clippy::module_inception)]
 
 pub mod blockchain;
 pub mod context;
@@ -36,4 +37,3 @@ pub extern crate alloc;
 
 #[macro_use]
 extern crate doc_comment;
-

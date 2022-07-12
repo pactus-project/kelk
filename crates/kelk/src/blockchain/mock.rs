@@ -17,6 +17,12 @@ impl MockBlockchain {
     }
 }
 
+impl Default for MockBlockchain {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BlockchainAPI for MockBlockchain {
     fn get_param<'a>(&self, _param_id: u32) -> Result<Vec<u8>, Error> {
         todo!()

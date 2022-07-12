@@ -3,7 +3,6 @@
 use alloc::boxed::Box;
 use kelk_env::BlockchainAPI;
 
-
 /// Blockchain object
 pub struct Blockchain {
     /// APIs the provided by th host
