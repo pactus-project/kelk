@@ -55,6 +55,12 @@ impl Kelk {
     }
 }
 
+impl Default for Kelk {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StorageAPI for Kelk {
     fn write(&self, offset: u32, data: &[u8]) -> Result<(), Error> {
         let ptr = data.as_ptr() as u32;
@@ -130,7 +136,7 @@ fn do_execute<'a, T, D: Decode<'a, ()>, R: Encode<()>, E: Encode<()>>(
 ) -> u64 {
     let ptr = Pointer::from_u64(msg_ptr);
     let buf = unsafe { ptr.to_slice() };
-    let msg = minicbor::decode(&buf).expect("Decoding failed");
+    let msg = minicbor::decode(buf).expect("Decoding failed");
     let res = func(ctx, msg);
     let mut vec = crate::alloc::vec::Vec::new();
     minicbor::encode(res, &mut vec).expect("Encoding failed");
