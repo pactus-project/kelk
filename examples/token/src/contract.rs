@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::message::{InstansiteMsg, ProcMsg, QueryMsg, QueryRsp};
+use crate::message::{InstantiateMsg, ProcMsg, QueryMsg, QueryRsp};
 use kelk::blockchain::address::Address;
 use kelk::context::Context;
 use kelk::kelk_derive;
@@ -59,7 +59,6 @@ parameters. It also handles any necessary value transfer required and takes
 the necessary steps to create accounts and reverses the state in case of an
 execution error or failed value transfer.
 */
-#[kelk_derive(process)]
 pub fn process(ctx: Context, msg: ProcMsg) -> Result<(), Error> {
     match msg {
         ProcMsg::Transfer { to, amount } => transfer(ctx, to, amount),
@@ -70,8 +69,7 @@ pub fn process(ctx: Context, msg: ProcMsg) -> Result<(), Error> {
 /*
 instantiate creates a new contract and deployment code.
 */
-#[kelk_derive(instantiate)]
-pub fn instantiate(ctx: Context, msg: InstansiteMsg) -> Result<(), Error> {
+pub fn instantiate(ctx: Context, msg: InstantiateMsg) -> Result<(), Error> {
     if msg.name.len() > 64 {
         return Err(Error::InvalidMsg);
     }
@@ -91,7 +89,6 @@ pub fn instantiate(ctx: Context, msg: InstansiteMsg) -> Result<(), Error> {
 query executes the contract associated with the addr with the given input
 as parameters while disallowing any modifications to the state during the call.
 */
-#[kelk_derive(query)]
 pub fn query(ctx: Context, msg: QueryMsg) -> Result<QueryRsp, Error> {
     let res = match msg {
         QueryMsg::Name => QueryRsp::Name { res: name(ctx)? },
@@ -109,4 +106,4 @@ pub fn query(ctx: Context, msg: QueryMsg) -> Result<QueryRsp, Error> {
 
 #[cfg(test)]
 #[path = "./contract_test.rs"]
-mod contract_test;
+mod tests;

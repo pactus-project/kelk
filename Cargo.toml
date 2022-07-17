@@ -1,9 +1,3 @@
 [workspace]
-members = [
-    "crates/derive",
-    "crates/env",
-    "crates/kelk",
-]
-exclude = [
-    "examples/",
-]
+members = ["crates/derive", "crates/env", "crates/kelk"]
+exclude = ["examples"]

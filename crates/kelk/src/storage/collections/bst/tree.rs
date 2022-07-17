@@ -141,7 +141,7 @@ where
                 }
                 offset = node.left;
             } else {
-                if node.left.eq(&0) {
+                if node.right.eq(&0) {
                     return Ok(None);
                 }
                 offset = node.right;
