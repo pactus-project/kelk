@@ -69,5 +69,4 @@ pub enum QueryRsp {
         #[n(2)]
         res: i64,
     },
-
 }
