@@ -1,3 +1,8 @@
 [workspace]
-members = ["crates/derive", "crates/env", "crates/kelk"]
+members = [
+    "crates/derive",
+    "crates/env",
+    "crates/kelk",
+    "crates/allocator",
+]
 exclude = ["examples"]
