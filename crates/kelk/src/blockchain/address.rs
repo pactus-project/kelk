@@ -60,7 +60,7 @@ mod tests {
             01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01,
         ]);
         let bytes = [
-            0x55, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01,
+            0x54, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01,
         ];
         let encoded_addr = minicbor::to_vec(addr.clone()).unwrap();
         let decoded_addr = minicbor::decode::<Address>(&bytes).unwrap();

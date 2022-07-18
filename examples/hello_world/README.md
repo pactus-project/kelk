@@ -21,7 +21,8 @@ It is recommended to remove absolute paths from the WASM binary. Check this issu
 RUSTFLAGS="--remap-path-prefix=$(realpath ../../)=kelk --remap-path-prefix=$HOME/.cargo=cargo --remap-path-prefix=$HOME/.rustup=rustup" cargo +nightly build --target wasm32-unknown-unknown --release -Z unstable-options --out-dir ./wasm
 ```
 
-You can check if the absolute path is removed from the binary:
+You can check if the absolute paths are removed from the binary:
+
 ```
 strings wasm/helo_world.wasm | grep home
 ```
