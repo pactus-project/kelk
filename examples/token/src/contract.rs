@@ -3,7 +3,7 @@ use crate::message::{InstantiateMsg, ProcMsg, QueryMsg, QueryRsp};
 use kelk::blockchain::address::Address;
 use kelk::context::Context;
 use kelk::kelk_derive;
-use kelk::storage::collections::bst::StorageBST;
+use kelk::storage::bst::StorageBST;
 
 fn transfer(ctx: Context, to: Address, amount: i64) -> Result<(), Error> {
     let from: Address = ctx.storage.read_struct(0).unwrap();
@@ -76,7 +76,6 @@ pub fn process(ctx: Context, msg: ProcMsg) -> Result<(), Error> {
         ProcMsg::TransferFrom { from, to, amount } => transfer_from(ctx, from, to, amount),
     }
 }
-
 
 /*
 query executes the contract associated with the addr with the given input
