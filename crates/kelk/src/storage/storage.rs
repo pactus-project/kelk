@@ -1,9 +1,8 @@
 //! Storage trait to read and write primitives
 
-use super::allocated::Allocated;
+use super::allocated::{Allocated, Offset};
 use super::codec::Codec;
 use super::error::Error;
-use super::Offset;
 use alloc::boxed::Box;
 use alloc::string::ToString;
 use core::result::Result;
@@ -82,14 +81,27 @@ impl Storage {
         let mut free_pos = self.read_u32(1028)?;
 
         // Creating new allocation
-        let allocated = Allocated::new(*free_pos.data(), data);
+        let allocated = Allocated::new(free_pos.data, data);
 
         // Updating allocation pos
-        *free_pos.data_mut() += T::PACKED_LEN as u32;
+        free_pos.data += T::PACKED_LEN as u32;
         self.write_u32(&free_pos)?;
 
         Ok(allocated)
     }
+
+    // pub fn allocate_raw(&self, length: u32) -> Result<Allocated<()>, Error> {
+    //     let mut free_pos = self.read_u32(1028)?;
+
+    //     // Creating new allocation
+    //     let allocated = Allocated::new(free_pos.data, ());
+
+    //     // Updating allocation pos
+    //     free_pos.data += length;
+    //     self.write_u32(&free_pos)?;
+
+    //     Ok(allocated)
+    // }
 
     fn stack_offset(&self, stack_index: u16) -> Result<Offset, Error> {
         if stack_index > self.stack_size {
@@ -136,96 +148,100 @@ impl Storage {
     /// Note that `T` should be `Codec`.
     #[inline]
     pub(crate) fn write<T: Codec>(&self, allocated: &Allocated<T>) -> Result<(), Error> {
-        let data = allocated.data().to_bytes();
-        Ok(self.api.write(allocated.offset(), &data)?)
+        let data = allocated.data.to_bytes();
+        Ok(self.api.write(allocated.offset, &data)?)
     }
 }
 
 #[cfg(test)]
 pub mod tests {
+    use kelk_derive::Codec;
+
     use crate::storage::{allocated::Allocated, mock::mock_storage};
 
     #[test]
     fn test_negative_integers() {
-        let mock = mock_storage(1024 * 1024);
+        let storage = mock_storage(1024 * 1024);
 
-        let a1: Allocated<i8> = mock.allocate(1).unwrap();
-        let a2: Allocated<i16> = mock.allocate(2).unwrap();
-        let a3: Allocated<i32> = mock.allocate(3).unwrap();
-        let a4: Allocated<i64> = mock.allocate(4).unwrap();
-        let a5: Allocated<i128> = mock.allocate(5).unwrap();
+        let a1: Allocated<i8> = storage.allocate(1).unwrap();
+        let a2: Allocated<i16> = storage.allocate(2).unwrap();
+        let a3: Allocated<i32> = storage.allocate(3).unwrap();
+        let a4: Allocated<i64> = storage.allocate(4).unwrap();
+        let a5: Allocated<i128> = storage.allocate(5).unwrap();
 
-        mock.write_i8(&a1).unwrap();
-        mock.write_i16(&a2).unwrap();
-        mock.write_i32(&a3).unwrap();
-        mock.write_i64(&a4).unwrap();
-        mock.write_i128(&a5).unwrap();
+        storage.write_i8(&a1).unwrap();
+        storage.write_i16(&a2).unwrap();
+        storage.write_i32(&a3).unwrap();
+        storage.write_i64(&a4).unwrap();
+        storage.write_i128(&a5).unwrap();
 
-        assert_eq!(mock.read_i8(a1.offset()).unwrap().data(), &1);
-        assert_eq!(mock.read_i8(a2.offset()).unwrap().data(), &2);
-        assert_eq!(mock.read_i8(a3.offset()).unwrap().data(), &3);
-        assert_eq!(mock.read_i8(a4.offset()).unwrap().data(), &4);
-        assert_eq!(mock.read_i8(a5.offset()).unwrap().data(), &5);
+        assert_eq!(storage.read_i8(a1.offset).unwrap().data, 1);
+        assert_eq!(storage.read_i8(a2.offset).unwrap().data, 2);
+        assert_eq!(storage.read_i8(a3.offset).unwrap().data, 3);
+        assert_eq!(storage.read_i8(a4.offset).unwrap().data, 4);
+        assert_eq!(storage.read_i8(a5.offset).unwrap().data, 5);
     }
 
     #[test]
     fn test_unsigned_integers() {
-        let mock = mock_storage(15);
+        let storage = mock_storage(1024 * 1024);
 
-        let a1: Allocated<u8> = mock.allocate(1).unwrap();
-        let a2: Allocated<u16> = mock.allocate(2).unwrap();
-        let a3: Allocated<u32> = mock.allocate(3).unwrap();
-        let a4: Allocated<u64> = mock.allocate(4).unwrap();
-        let a5: Allocated<u128> = mock.allocate(5).unwrap();
+        let a1: Allocated<u8> = storage.allocate(1).unwrap();
+        let a2: Allocated<u16> = storage.allocate(2).unwrap();
+        let a3: Allocated<u32> = storage.allocate(3).unwrap();
+        let a4: Allocated<u64> = storage.allocate(4).unwrap();
+        let a5: Allocated<u128> = storage.allocate(5).unwrap();
 
-        mock.write_u8(&a1).unwrap();
-        mock.write_u16(&a2).unwrap();
-        mock.write_u32(&a3).unwrap();
-        mock.write_u64(&a4).unwrap();
-        mock.write_u128(&a5).unwrap();
+        storage.write_u8(&a1).unwrap();
+        storage.write_u16(&a2).unwrap();
+        storage.write_u32(&a3).unwrap();
+        storage.write_u64(&a4).unwrap();
+        storage.write_u128(&a5).unwrap();
 
-        assert_eq!(mock.read_u8(a1.offset()).unwrap().data(), &1);
-        assert_eq!(mock.read_u8(a2.offset()).unwrap().data(), &2);
-        assert_eq!(mock.read_u8(a3.offset()).unwrap().data(), &3);
-        assert_eq!(mock.read_u8(a4.offset()).unwrap().data(), &4);
-        assert_eq!(mock.read_u8(a5.offset()).unwrap().data(), &5);
+        assert_eq!(storage.read_u8(a1.offset).unwrap().data, 1);
+        assert_eq!(storage.read_u16(a2.offset).unwrap().data, 2);
+        assert_eq!(storage.read_u32(a3.offset).unwrap().data, 3);
+        assert_eq!(storage.read_u64(a4.offset).unwrap().data, 4);
+        assert_eq!(storage.read_u128(a5.offset).unwrap().data, 5);
     }
 
-    // #[test]
-    // fn test_bool() {
-    //     let mock = mock_storage(1);
+    #[test]
+    fn test_bool() {
+        let storage = mock_storage(1024 * 1024);
 
-    //     mock.write_bool(0, true).unwrap();
-    //     assert!(mock.read_bool(0).unwrap());
-    // }
+        let a1: Allocated<bool> = storage.allocate(true).unwrap();
+        let a2: Allocated<bool> = storage.allocate(false).unwrap();
 
-    // #[test]
-    // fn test_struct() {
-    //     #[derive(Debug, PartialEq)]
-    //     struct Test {
-    //         foo: i16,
-    //         bar: i8,
-    //         zoo: i32,
-    //     }
+        storage.write_bool(&a1).unwrap();
+        storage.write_bool(&a2).unwrap();
 
-    //     let storage = mock_storage(64);
-    //     let foo_1 = Test {
-    //         foo: 123,
-    //         bar: 7,
-    //         zoo: 1024,
-    //     };
+        assert_eq!(storage.read_bool(a1.offset).unwrap().data, true);
+        assert_eq!(storage.read_bool(a2.offset).unwrap().data, false);
+    }
 
-    //     storage.write_struct::<Test>(13, &foo_1).unwrap();
-    //     let foo_2 = storage.read_struct::<Test>(13).unwrap();
-    //     assert_eq!(foo_1, foo_2);
-    // }
+    #[test]
+    fn test_struct() {
+        use crate::storage::storage::Codec;
 
-    // #[test]
-    // fn test_sting() {
-    //     let storage = mock_storage(64);
-    //     storage.write_string(0, "foooo", 16).unwrap();
-    //     storage.write_string(0, "foo", 16).unwrap();
-    //     let expected = storage.read_string(0, 16).unwrap();
-    //     assert_eq!(expected, "foo".to_string())
-    // }
+        #[derive(Debug, PartialEq, Codec, Clone)]
+        struct Test {
+            foo: i16,
+            bar: i8,
+            zoo: i32,
+        }
+
+        let storage = mock_storage(1024 * 1024);
+        let foo_1 = Test {
+            foo: 123,
+            bar: 7,
+            zoo: 1024,
+        };
+
+        let a1: Allocated<Test> = storage.allocate(foo_1.clone()).unwrap();
+
+        storage.write(&a1).unwrap();
+        let a2 = storage.read::<Test>(a1.offset).unwrap();
+        assert_eq!(foo_1, a2.data);
+    }
+
 }

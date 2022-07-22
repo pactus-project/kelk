@@ -77,21 +77,19 @@ pub fn derive_codec(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     // Generate an expression to sum up the heap size of each field.
-    let packed_len_body = packed_length_body(&input.data);
+    let packed_len_body = packed_len_body(&input.data);
     let (to_bytes_body, from_bytes_body) = codec_body(&input.data);
 
     let expanded = quote! {
-        use alloc::vec::Vec;
-
         impl #impl_generics Codec for #name #ty_generics #where_clause {
 
             const PACKED_LEN: usize = #packed_len_body;
 
             #[inline]
-            fn to_bytes(&self) -> Vec<u8> {
-                let mut bytes = Vec::with_capacity(<Self as Codec>::PACKED_LEN);
+            fn to_bytes(&self) -> alloc::boxed::Box<&[u8]> {
+                let mut bytes = alloc::vec::Vec::with_capacity(<Self as Codec>::PACKED_LEN);
                 #to_bytes_body
-                bytes
+                alloc::boxed::Box::new(&bytes)
             }
 
             #[inline]
@@ -105,7 +103,7 @@ pub fn derive_codec(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::from(expanded)
 }
 
-fn packed_length_body(data: &Data) -> TokenStream {
+fn packed_len_body(data: &Data) -> TokenStream {
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
@@ -185,7 +183,7 @@ fn codec_fields(fields: &Punctuated<Field, Comma>) -> (TokenStream, TokenStream)
         let ty = &field.ty;
 
         recurse_to_bytes.push(quote_spanned! {field.span()=>
-            bytes.append(&mut Codec::to_bytes(&self.#name));
+            bytes.extend_from_slice(&Codec::to_bytes(&self.#name));
         });
 
         let struct_size = quote! { <#ty as Codec>::PACKED_LEN };

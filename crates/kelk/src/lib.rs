@@ -21,7 +21,6 @@
     trivial_casts,
     trivial_numeric_casts
 )]
-#![allow(clippy::module_inception)]
 
 extern crate kelk_allocator;
 

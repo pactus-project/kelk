@@ -1,63 +1,80 @@
+//! Storage Vector
+//!
 //! Storage Vector, is a Vector or Array that instead of using Random Access Memory (RAM),
 //! it uses storage file. Therefore it's permanently store inside contract's storage.
+//!
 
-use super::header::Header;
+mod phantom;
+
+use self::phantom::PhantomVec;
+
+use super::allocated::{Allocated, Offset};
+use crate::storage::codec::Codec;
 use crate::storage::error::Error;
 use crate::storage::Storage;
+use crate::Codec;
 use core::marker::PhantomData;
-use core::mem::size_of;
 use core::result::Result;
 
 /// The instance of Storage Vector
-pub struct StorageVec<'a, V>
-where
-    V: Sized,
-{
-    storage: &'a Storage<'a>,
-    offset: u32,
-    header: Header,
-    _phantom: PhantomData<V>,
+pub struct StorageVec<'a, T: Codec> {
+    storage: &'a Storage,
+    header: Allocated<Header>,
+    _phantom: PhantomData<T>,
+}
+#[derive(Codec)]
+pub(super) struct Header {
+    pub count: u32,
+    pub capacity: u32,
+    pub value_len: u16,
+    pub data_offset: Offset,
 }
 
-impl<'a, V> StorageVec<'a, V>
-where
-    V: Sized,
-{
+impl Header {
+    pub fn new<T: Codec>(capacity: u32) -> Self {
+        Self {
+            value_len: T::PACKED_LEN as u16,
+            count: 0,
+            capacity,
+            data_offset: 0,
+        }
+    }
+}
+
+impl<'a, T: Codec> StorageVec<'a, T> {
     /// creates and store a new instance of Storage Vector at the given offset
-    pub fn create(storage: &'a Storage, offset: u32, capacity: u32) -> Result<Self, Error> {
-        let header = Header::new::<V>(capacity);
-        storage.write_struct(offset, &header)?;
+    pub fn create(storage: &'a Storage, capacity: u32) -> Result<Self, Error> {
+        let mut header = storage.allocate(Header::new::<T>(capacity))?;
+        let a = PhantomVec::<T, capacity>::new();
+        let mut phantom = storage.allocate(a);
+        //storage.allocate(data)
+        storage.write(&header)?;
 
         Ok(StorageVec {
             storage,
-            offset,
             header,
             _phantom: PhantomData,
         })
     }
 
     /// load the Storage Vector
-    pub fn lazy_load(storage: &'a Storage, offset: u32) -> Result<Self, Error> {
-        let header: Header = storage.read_struct(offset)?;
-
-        // TODO:
-        // Check boom and reserved field to be correct
-
-        if header.value_len != size_of::<V>() as u16 {
-            return Err(Error::InvalidOffset(offset));
-        }
+    pub fn load(storage: &'a Storage, offset: u32) -> Result<Self, Error> {
+        let header = storage.read(offset)?;
 
         Ok(StorageVec {
             storage,
-            offset,
             header,
             _phantom: PhantomData,
         })
     }
+    /// Returns the offset of `StorageVector` in the storage file.
+    pub fn offset(&self) -> Offset {
+        self.header.offset
+    }
 
     /// Returns the number of elements in the vector, also referred to as its ‘length’.
     pub fn len(&self) -> u32 {
-        self.header.count
+        self.get_header().unwrap().count // TODO?
     }
 
     /// Returns true if the vector contains no elements.
@@ -66,31 +83,44 @@ where
     }
 
     /// Appends an element to the back of a vector.
-    pub fn push(&mut self, value: V) -> Result<(), Error> {
-        if self.header.count >= self.header.capacity {
+    pub fn push(&mut self, value: T) -> Result<(), Error> {
+        let header = self.get_header()?;
+        if header.count >= header.capacity {
             return Err(Error::OutOfCapacity);
         }
 
-        let offset = self.offset
-            + size_of::<Header>() as u32
-            + (self.header.count * self.header.value_len as u32);
+        let offset = self.get_item_offset(header.count)?;
+        let item = Allocated::new(offset, value);
+        self.storage.write(&item)?;
 
-        self.header.count += 1;
-        self.storage.write_struct(self.offset, &self.header)?;
-        self.storage.write_struct(offset, &value)?;
-        Ok(())
+        header.count += 1;
+        self.update_header()
     }
 
     /// Returns an element at the given index or None if out of bounds..
-    pub fn get(&self, index: u32) -> Result<Option<V>, Error> {
-        if index >= self.header.count {
+    pub fn get(&self, index: u32) -> Result<Option<T>, Error> {
+        let header = self.header.get()?.data;
+        if index >= header.count {
             return Ok(None);
         }
 
-        let offset =
-            self.offset + size_of::<Header>() as u32 + (index * self.header.value_len as u32);
-        let val: V = self.storage.read_struct(offset)?;
-        Ok(Some(val))
+        let offset = self.get_item_offset(index)?;
+        let item = self.storage.read(offset)?;
+        Ok(Some(item.data))
+    }
+
+    fn get_item_offset(&self, index: u32) -> Result<Offset, Error> {
+        Ok(self.offset()
+            + Header::PACKED_LEN as u32
+            + (index * self.get_header()?.value_len as u32))
+    }
+
+    fn get_header(&self) -> Result<Header, Error> {
+        Ok(self.header.get_mut()?.data)
+    }
+
+    fn update_header(&self) -> Result<(), Error> {
+        self.storage.write(self.header.get()?)
     }
 }
 
