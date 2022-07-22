@@ -4,7 +4,7 @@
 //! (that is, most significant byte first, also known as "big-endian").
 //!
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 
 /// `Codec` trait defines functions to serialize types as bytes and deserialize from bytes
 /// in big-endian (network) byte order.
@@ -13,7 +13,7 @@ pub trait Codec {
     const PACKED_LEN: usize;
 
     /// Returns the memory representation of this type as a byte array in big-endian (network) byte order.
-    fn to_bytes(&self) -> Box<&[u8]>;
+    fn to_bytes(&self) -> Vec<u8>;
 
     /// Creates a native endian value from its representation as a byte array in big-endian (network) byte order.
     fn from_bytes(bytes: &[u8]) -> Self;
@@ -23,10 +23,10 @@ impl Codec for bool {
     const PACKED_LEN: usize = 1;
 
     #[inline]
-    fn to_bytes(&self) -> Box<&[u8]> {
+    fn to_bytes(&self) -> Vec<u8> {
         match self {
-            true => Box::new(&[1]),
-            false => Box::new(&[0]),
+            true => [1].to_vec(),
+            false => [0].to_vec(),
         }
     }
 
@@ -45,8 +45,8 @@ macro_rules! impl_codec_for_integer {
             const PACKED_LEN: usize = $size;
 
             #[inline]
-            fn to_bytes(&self) -> Box<&[u8]> {
-                Box::new(&self.to_be_bytes())
+            fn to_bytes(&self) -> Vec<u8> {
+                self.to_be_bytes().to_vec()
             }
 
             #[inline]
@@ -64,8 +64,8 @@ macro_rules! impl_codec_for_array {
             const PACKED_LEN: usize = $size;
 
             #[inline]
-            fn to_bytes(&self) -> Box<&[u8]> {
-                Box::new(self)
+            fn to_bytes(&self) -> Vec<u8> {
+                self.to_vec()
             }
 
             #[inline]

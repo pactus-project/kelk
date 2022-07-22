@@ -16,17 +16,18 @@ use core::result::Result;
 /// The instance of `StorageLinkedList`
 pub struct StorageLinkedList<'a, T: Codec> {
     storage: &'a Storage,
-    header: Allocated<Header>,
+    header: Header,
+    offset: Offset,
     _phantom: PhantomData<T>,
 }
 
 #[derive(Codec)]
-pub(super) struct Node<T: Sized> {
+pub(super) struct Node<T: Codec> {
     pub item: T,
     pub next: Offset,
 }
 
-impl<T: Sized> Node<T> {
+impl<T: Codec> Node<T> {
     pub fn new(item: T) -> Self {
         Self { item, next: 0 }
     }
@@ -54,12 +55,14 @@ impl Header {
 impl<'a, T: Codec> StorageLinkedList<'a, T> {
     /// Creates a new instance of `StorageLinkedList`.
     pub fn create(storage: &'a Storage) -> Result<Self, Error> {
-        let header = storage.allocate(Header::new::<T>())?;
-        storage.write(&header)?;
+        let header = Header::new::<T>();
+        let offset = storage.allocate(Header::PACKED_LEN)?;
+        storage.write(offset, &header)?;
 
         Ok(StorageLinkedList {
             storage,
             header,
+            offset,
             _phantom: PhantomData,
         })
     }
@@ -71,34 +74,37 @@ impl<'a, T: Codec> StorageLinkedList<'a, T> {
         Ok(StorageLinkedList {
             storage,
             header,
+            offset,
             _phantom: PhantomData,
         })
     }
 
     /// Returns the offset of `StorageLinkedList` in the storage file.
     pub fn offset(&self) -> Offset {
-        self.header.offset
+        self.offset
     }
 
     /// Pushes an item at the end of linked list.
     pub fn push_back(&mut self, item: T) -> Result<(), Error> {
-        let allocated_node = self.storage.allocate(Node::new(item))?;
+        let offset = self.storage.allocate(Node::<T>::PACKED_LEN)?;
+        let node = Node::new(item);
 
-        if self.header.data.count == 0 {
-            self.header.data.head_offset = allocated_node.offset;
+        if self.header.count == 0 {
+            self.header.head_offset = offset;
         } else {
-            let mut tail: Allocated<Node<T>> = self.storage.read(self.header.data.tail_offset)?;
-            tail.data.next = allocated_node.offset;
-            self.storage.write(&tail)?;
+            let mut tail: Node::<T> = self.storage.read(self.header.tail_offset)?;
+            tail.next = offset;
+            self.storage.write(self.header.tail_offset, &tail)?;
         }
-        self.storage.write(&allocated_node)?;
+        self.storage.write(offset, &node)?;
 
-        self.header.data.count += 1;
-        self.header.data.tail_offset = allocated_node.offset;
-        self.storage.write(&self.header)
+        self.header.count += 1;
+        self.header.tail_offset = offset;
+        self.storage.write(self.offset, &self.header)
     }
 }
 
+///
 pub struct StorageLinkedListIter<'a, T> {
     storage: &'a Storage,
     cur_offset: Offset,
@@ -106,28 +112,27 @@ pub struct StorageLinkedListIter<'a, T> {
 }
 
 impl<'a, T: Codec + 'a> Iterator for StorageLinkedListIter<'a, T> {
-    type Item = &'a T;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cur_offset == 0 {
             None
         } else {
-            let node: Allocated<Node<T>> = self.storage.read(self.cur_offset).unwrap();
-            self.cur_offset = node.data.next;
-            Some(&node.data.item)
+            let node: Node<T> = self.storage.read(self.cur_offset).unwrap();
+            self.cur_offset = node.next;
+            Some(node.item)
         }
     }
 }
 
 impl<'a, T: Codec> IntoIterator for &'a mut StorageLinkedList<'a, T> {
-    type Item = &'a T;
+    type Item = T;
     type IntoIter = StorageLinkedListIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let offset = self.header.data.head_offset;
         Self::IntoIter {
             storage: self.storage,
-            cur_offset: offset,
+            cur_offset: self.header.head_offset,
             _phantom: PhantomData,
         }
     }
@@ -148,7 +153,7 @@ mod tests {
         linked_list.push_back(3).unwrap();
 
         let iter = linked_list.into_iter();
-        let all_items: Vec<i32> = iter.map(|n| *n).collect();
+        let all_items: Vec<i32> = iter.map(|n| n).collect();
         assert!(all_items.eq(&[1, 2, 3]));
     }
 }

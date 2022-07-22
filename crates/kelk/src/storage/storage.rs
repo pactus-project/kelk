@@ -14,7 +14,7 @@ macro_rules! impl_num {
             concat!("reads ", stringify!($size), " byte(s) from storage file at the given `offset` and converts it to ", stringify!($ty),"."
             ),
             #[inline]
-            pub fn $read_fn(&self, offset: u32) -> Result<Allocated<$ty>,Error> {
+            pub fn $read_fn(&self, offset: Offset) -> Result<$ty,Error> {
                 self.read::<$ty>(offset)
             }
         }
@@ -23,8 +23,8 @@ macro_rules! impl_num {
                 concat!("converts ", stringify!($ty)," to ", stringify!($size), " byte(s) and writes it into storage file at the given `offset`."
                 ),
             #[inline]
-            pub fn $write_fn(&self, value: &Allocated<$ty>) -> Result<(),Error> {
-                self.write(&value)
+            pub fn $write_fn(&self, offset: Offset, value: &$ty) -> Result<(),Error> {
+                self.write(offset, value)
             }
         }
     };
@@ -77,17 +77,14 @@ impl Storage {
     }
 
     ///
-    pub fn allocate<T: Codec>(&self, data: T) -> Result<Allocated<T>, Error> {
-        let mut free_pos = self.read_u32(1028)?;
-
-        // Creating new allocation
-        let allocated = Allocated::new(free_pos.data, data);
+    pub fn allocate(&self, length: usize) -> Result<Offset, Error> {
+        let cur_free_pos = self.read_u32(1028)?;
+        let next_free_pos = cur_free_pos + length as u32;
 
         // Updating allocation pos
-        free_pos.data += T::PACKED_LEN as u32;
-        self.write_u32(&free_pos)?;
+        self.write_u32(1028, &next_free_pos)?;
 
-        Ok(allocated)
+        Ok(cur_free_pos)
     }
 
     // pub fn allocate_raw(&self, length: u32) -> Result<Allocated<()>, Error> {
@@ -138,85 +135,85 @@ impl Storage {
     /// reads `T` from the storage file at the given `offset`.
     /// Note that struct `T` should be `Codec`.
     #[inline]
-    pub(crate) fn read<T: Codec>(&self, offset: u32) -> Result<Allocated<T>, Error> {
-        let bytes = self.api.read(offset, T::PACKED_LEN as u32)?;
-        let data = T::from_bytes(&bytes);
-        Ok(Allocated::new(offset, data))
+    pub(crate) fn read<T: Codec>(&self, offset: u32) -> Result<T, Error> {
+        let data = self.api.read(offset, T::PACKED_LEN as u32)?;
+        let value = T::from_bytes(&data);
+        Ok(value)
     }
 
     /// writes `T` to the storage file at the given `offset`.
     /// Note that `T` should be `Codec`.
     #[inline]
-    pub(crate) fn write<T: Codec>(&self, allocated: &Allocated<T>) -> Result<(), Error> {
-        let data = allocated.data.to_bytes();
-        Ok(self.api.write(allocated.offset, &data)?)
+    pub(crate) fn write<T: Codec>(&self, offset: Offset, value: &T) -> Result<(), Error> {
+        let data = value.to_bytes();
+        Ok(self.api.write(offset, &data)?)
     }
 }
 
 #[cfg(test)]
 pub mod tests {
+    use crate::storage::codec::Codec;
+    use crate::storage::mock::mock_storage;
     use kelk_derive::Codec;
-
-    use crate::storage::{allocated::Allocated, mock::mock_storage};
-
-    #[test]
-    fn test_negative_integers() {
-        let storage = mock_storage(1024 * 1024);
-
-        let a1: Allocated<i8> = storage.allocate(1).unwrap();
-        let a2: Allocated<i16> = storage.allocate(2).unwrap();
-        let a3: Allocated<i32> = storage.allocate(3).unwrap();
-        let a4: Allocated<i64> = storage.allocate(4).unwrap();
-        let a5: Allocated<i128> = storage.allocate(5).unwrap();
-
-        storage.write_i8(&a1).unwrap();
-        storage.write_i16(&a2).unwrap();
-        storage.write_i32(&a3).unwrap();
-        storage.write_i64(&a4).unwrap();
-        storage.write_i128(&a5).unwrap();
-
-        assert_eq!(storage.read_i8(a1.offset).unwrap().data, 1);
-        assert_eq!(storage.read_i8(a2.offset).unwrap().data, 2);
-        assert_eq!(storage.read_i8(a3.offset).unwrap().data, 3);
-        assert_eq!(storage.read_i8(a4.offset).unwrap().data, 4);
-        assert_eq!(storage.read_i8(a5.offset).unwrap().data, 5);
-    }
 
     #[test]
     fn test_unsigned_integers() {
         let storage = mock_storage(1024 * 1024);
 
-        let a1: Allocated<u8> = storage.allocate(1).unwrap();
-        let a2: Allocated<u16> = storage.allocate(2).unwrap();
-        let a3: Allocated<u32> = storage.allocate(3).unwrap();
-        let a4: Allocated<u64> = storage.allocate(4).unwrap();
-        let a5: Allocated<u128> = storage.allocate(5).unwrap();
+        let offset1 = storage.allocate(u8::PACKED_LEN).unwrap();
+        let offset2 = storage.allocate(u16::PACKED_LEN).unwrap();
+        let offset3 = storage.allocate(u32::PACKED_LEN).unwrap();
+        let offset4 = storage.allocate(u64::PACKED_LEN).unwrap();
+        let offset5 = storage.allocate(u128::PACKED_LEN).unwrap();
 
-        storage.write_u8(&a1).unwrap();
-        storage.write_u16(&a2).unwrap();
-        storage.write_u32(&a3).unwrap();
-        storage.write_u64(&a4).unwrap();
-        storage.write_u128(&a5).unwrap();
+        storage.write_u8(offset1, &1).unwrap();
+        storage.write_u16(offset2, &2).unwrap();
+        storage.write_u32(offset3, &3).unwrap();
+        storage.write_u64(offset4, &4).unwrap();
+        storage.write_u128(offset5, &5).unwrap();
 
-        assert_eq!(storage.read_u8(a1.offset).unwrap().data, 1);
-        assert_eq!(storage.read_u16(a2.offset).unwrap().data, 2);
-        assert_eq!(storage.read_u32(a3.offset).unwrap().data, 3);
-        assert_eq!(storage.read_u64(a4.offset).unwrap().data, 4);
-        assert_eq!(storage.read_u128(a5.offset).unwrap().data, 5);
+        assert_eq!(storage.read_u8(offset1).unwrap(), 1);
+        assert_eq!(storage.read_u16(offset2).unwrap(), 2);
+        assert_eq!(storage.read_u32(offset3).unwrap(), 3);
+        assert_eq!(storage.read_u64(offset4).unwrap(), 4);
+        assert_eq!(storage.read_u128(offset5).unwrap(), 5);
+    }
+
+    #[test]
+    fn test_signed_integers() {
+        let storage = mock_storage(1024 * 1024);
+
+        let offset1 = storage.allocate(i8::PACKED_LEN).unwrap();
+        let offset2 = storage.allocate(i16::PACKED_LEN).unwrap();
+        let offset3 = storage.allocate(i32::PACKED_LEN).unwrap();
+        let offset4 = storage.allocate(i64::PACKED_LEN).unwrap();
+        let offset5 = storage.allocate(i128::PACKED_LEN).unwrap();
+
+        storage.write_i8(offset1, &-1).unwrap();
+        storage.write_i16(offset2, &-2).unwrap();
+        storage.write_i32(offset3, &-3).unwrap();
+        storage.write_i64(offset4, &-4).unwrap();
+        storage.write_i128(offset5, &-5).unwrap();
+
+        assert_eq!(storage.read_i8(offset1).unwrap(), -1);
+        assert_eq!(storage.read_i16(offset2).unwrap(), -2);
+        assert_eq!(storage.read_i32(offset3).unwrap(), -3);
+        assert_eq!(storage.read_i64(offset4).unwrap(), -4);
+        assert_eq!(storage.read_i128(offset5).unwrap(), -5);
     }
 
     #[test]
     fn test_bool() {
         let storage = mock_storage(1024 * 1024);
 
-        let a1: Allocated<bool> = storage.allocate(true).unwrap();
-        let a2: Allocated<bool> = storage.allocate(false).unwrap();
+        let offset1 = storage.allocate(bool::PACKED_LEN).unwrap();
+        let offset2 = storage.allocate(bool::PACKED_LEN).unwrap();
 
-        storage.write_bool(&a1).unwrap();
-        storage.write_bool(&a2).unwrap();
+        storage.write_bool(offset1, &true).unwrap();
+        storage.write_bool(offset2, &false).unwrap();
 
-        assert_eq!(storage.read_bool(a1.offset).unwrap().data, true);
-        assert_eq!(storage.read_bool(a2.offset).unwrap().data, false);
+        assert_eq!(storage.read_bool(offset1).unwrap(), true);
+        assert_eq!(storage.read_bool(offset2).unwrap(), false);
     }
 
     #[test]
@@ -237,11 +234,10 @@ pub mod tests {
             zoo: 1024,
         };
 
-        let a1: Allocated<Test> = storage.allocate(foo_1.clone()).unwrap();
+        let offset = storage.allocate(Test::PACKED_LEN).unwrap();
 
-        storage.write(&a1).unwrap();
-        let a2 = storage.read::<Test>(a1.offset).unwrap();
-        assert_eq!(foo_1, a2.data);
+        storage.write(offset, &foo_1).unwrap();
+        let foo_2 = storage.read::<Test>(offset).unwrap();
+        assert_eq!(foo_1, foo_2);
     }
-
 }

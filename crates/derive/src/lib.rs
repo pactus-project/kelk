@@ -86,10 +86,10 @@ pub fn derive_codec(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             const PACKED_LEN: usize = #packed_len_body;
 
             #[inline]
-            fn to_bytes(&self) -> alloc::boxed::Box<&[u8]> {
+            fn to_bytes(&self) -> alloc::vec::Vec<u8> {
                 let mut bytes = alloc::vec::Vec::with_capacity(<Self as Codec>::PACKED_LEN);
                 #to_bytes_body
-                alloc::boxed::Box::new(&bytes)
+                bytes
             }
 
             #[inline]

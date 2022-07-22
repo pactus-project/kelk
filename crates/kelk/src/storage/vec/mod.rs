@@ -4,9 +4,6 @@
 //! it uses storage file. Therefore it's permanently store inside contract's storage.
 //!
 
-mod phantom;
-
-use self::phantom::PhantomVec;
 
 use super::allocated::{Allocated, Offset};
 use crate::storage::codec::Codec;
