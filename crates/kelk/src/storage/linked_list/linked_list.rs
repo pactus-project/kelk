@@ -54,7 +54,7 @@ impl<'a, I: Codec> StorageLinkedList<'a, I> {
             header.head_offset = allocated.offset();
         } else {
             let mut tail: Allocated<Node<I>> = self.storage.read(header.tail_offset)?;
-            tail.data_mut().next = allocated.offset();
+            tail.data_mut().update_next(allocated.offset());
             self.storage.write(&tail)?;
         }
 
@@ -82,7 +82,7 @@ impl<'a, I: Codec> Iterator for StorageLinkedListIter<'a, I> {
             None
         } else {
             let node: Allocated<Node<I>> = self.storage.read(self.cur_offset).unwrap();
-            self.cur_offset = node.data().next;
+            self.cur_offset = *node.data().next();
             Some(node)
         }
     }

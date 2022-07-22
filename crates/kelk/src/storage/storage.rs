@@ -121,23 +121,7 @@ impl Storage {
     impl_num!(i64, 8, read_i64, write_i64);
     impl_num!(i128, 16, read_i128, write_i128);
 
-    /// reads 1 byte from storage file at the given `offset` and converts it to bool.
-    // #[inline]
-    // pub fn read_bool(&self, offset: u32) -> Result<bool, Error> {
-    //     match self.read_i8(offset)? {
-    //         0 => Ok(false),
-    //         _ => Ok(true),
-    //     }
-    // }
-
-    // /// converts bool to 1 byte and writes it into storage file at the given `offset`.
-    // #[inline]
-    // pub fn write_bool(&self, value: Allocated<bool>) -> Result<(), Error> {
-    //     match value {
-    //         true => self.write_i8(offset, 1),
-    //         false => self.write_i8(offset, 0),
-    //     }
-    // }
+    impl_num!(bool, 1, read_bool, write_bool);
 
     /// reads `T` from the storage file at the given `offset`.
     /// Note that struct `T` should be `Codec`.

@@ -77,7 +77,29 @@ impl<T: Codec> Allocated<T> {
     }
 
     ///
+    pub fn update_data<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T)->T,
+    {
+        self.data = f(&self.data);
+    }
+
+    ///
     pub fn data_mut(&mut self) -> &mut T {
         &mut self.data
+    }
+}
+
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update() {
+        let mut a = Allocated::<i32>{offset:1, data: 2};
+        a.update_data(|x|x+1);
+        assert_eq!(a.data(), &3);
+        assert_eq!(a.offset(), 1);
     }
 }
