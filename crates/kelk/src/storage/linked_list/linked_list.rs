@@ -2,81 +2,125 @@
 //! it uses storage file. Therefore it's permanently store inside contract's storage.
 
 use super::header::Header;
-use super::item::Item;
+use super::node::{self, Node};
+use crate::storage::allocated::{self, Allocated, LazyAllocated};
+use crate::storage::codec::Codec;
 use crate::storage::error::Error;
-use crate::storage::Storage;
+use crate::storage::{Offset, Storage};
+use alloc::collections::btree_map::Entry::{Occupied, Vacant};
+use alloc::collections::{BTreeMap, BTreeSet};
+use core::iter::IntoIterator;
 use core::marker::PhantomData;
-use core::mem::size_of;
 use core::result::Result;
 
 /// The instance of Storage Linked List
-pub struct StorageLinkedList<'a, I>
-where
-    I: Sized,
-{
+pub struct StorageLinkedList<'a, I: Codec> {
     storage: &'a Storage,
-    offset: u32,
-    header: Header,
+    header: LazyAllocated<'a, Header>,
     _phantom: PhantomData<I>,
 }
 
-impl<'a, I> StorageLinkedList<'a, I>
-where
-    I: Sized,
-{
-    /// creates and store a new instance of Storage Linked List Tree at the given offset
-    pub fn create(storage: &'a Storage, offset: u32, capacity: u32) -> Result<Self, Error> {
-        let header = Header::new::<I>(capacity);
-        storage.write_struct::<Header>(offset, &header)?;
+impl<'a, I: Codec> StorageLinkedList<'a, I> {
+    /// creates a new instance of Storage Linked List.
+    pub fn create(storage: &'a Storage) -> Result<Allocated<Self>, Error> {
+        let header = Header::new::<I>();
+        let allocated_header = storage.allocate(header)?;
 
-        Ok(StorageLinkedList {
-            storage,
-            offset,
-            header,
-            _phantom: PhantomData,
-        })
+        Ok(Allocated::new(
+            allocated_header.offset(),
+            StorageLinkedList {
+                storage,
+                header: LazyAllocated::from_allocated(allocated_header),
+                _phantom: PhantomData,
+            },
+        ))
     }
 
-    /// load the Storage Linked List Tree
-    pub fn lazy_load(storage: &'a Storage, offset: u32) -> Result<Self, Error> {
-        let header: Header = storage.read_struct(offset)?;
+    /// load the Storage Linked List
+    pub fn lazy_load(storage: &'a Storage, offset: Offset) -> Result<Allocated<Self>, Error> {
+        Ok(Allocated::new(
+            offset,
+            StorageLinkedList {
+                storage,
+                header: LazyAllocated::from_offset(offset, storage),
+                _phantom: PhantomData,
+            },
+        ))
+    }
 
-        // TODO:
-        // Check boom and reserved field to be correct
+    /// pushes an item at the end of linked list.
+    pub fn push_back(&mut self, item: I) -> Result<(), Error> {
+        let allocated = self.storage.allocate(Node::new(item))?;
+        let header = self.header.get_mut()?.data_mut();
 
-        if header.item_len != size_of::<I>() as u16 {
-            return Err(Error::InvalidOffset(offset));
+        if header.count == 0 {
+            header.head_offset = allocated.offset();
+        } else {
+            let mut tail: Allocated<Node<I>> = self.storage.read(header.tail_offset)?;
+            tail.data_mut().next = allocated.offset();
+            self.storage.write(&tail)?;
         }
 
-        Ok(StorageLinkedList {
-            storage,
-            offset,
-            header,
-            _phantom: PhantomData,
-        })
+        header.count += 1;
+        header.tail_offset = allocated.offset();
+
+        self.storage.write(&allocated)?;
+        self.storage.write(self.header.get()?)?;
+
+        Ok(())
     }
+}
 
-    /// Inserts an item at the end of linked list.
-    pub fn insert(&mut self, item: I) -> Result<Option<I>, Error> {
-        if self.header.count == 0 {
-            // create a root node
-            let root = Item::new(item);
-            let head_offset = self.offset + size_of::<Header>() as u32;
+pub struct StorageLinkedListIter<'a, I> {
+    storage: &'a Storage,
+    cur_offset: Offset,
+    _phantom: PhantomData<I>,
+}
 
-            self.header.count = 1;
-            self.header.head_offset = head_offset;
-            self.header.tail_offset = head_offset;
+impl<'a, I: Codec> Iterator for StorageLinkedListIter<'a, I> {
+    type Item = Allocated<Node<I>>;
 
-            self.storage.write_struct(self.offset, &self.header)?;
-            self.storage.write_struct(head_offset, &root)?;
-            Ok(None)
-        } else if self.header.count >= self.header.capacity {
-            Err(Error::OutOfCapacity)
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur_offset == 0 {
+            None
         } else {
-            todo!()
+            let node: Allocated<Node<I>> = self.storage.read(self.cur_offset).unwrap();
+            self.cur_offset = node.data().next;
+            Some(node)
+        }
+    }
+}
+
+impl<'a, I: Codec> IntoIterator for &'a mut StorageLinkedList<'a, I> {
+    type Item = Allocated<Node<I>>;
+    type IntoIter = StorageLinkedListIter<'a, I>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let offset = self.header.get().unwrap().data().head_offset;
+        Self::IntoIter {
+            storage: self.storage,
+            cur_offset: offset,
+            _phantom: PhantomData,
         }
     }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::StorageLinkedList;
+    use crate::storage::mock::mock_storage;
+    use core::iter::IntoIterator;
+
+    #[test]
+    fn test_push_back() {
+        let storage = mock_storage(4 * 1024);
+        let mut linked_list = StorageLinkedList::<i32>::create(&storage).unwrap();
+        linked_list.data_mut().push_back(1).unwrap();
+        linked_list.data_mut().push_back(2).unwrap();
+        linked_list.data_mut().push_back(3).unwrap();
+
+        let mut iter = linked_list.data_mut().into_iter();
+        let a = iter.next().unwrap();
+        let b = iter.next().unwrap();
+    }
+}
