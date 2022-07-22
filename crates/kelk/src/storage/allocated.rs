@@ -52,6 +52,13 @@ impl<'a, T: Codec> LazyAllocated<'a, T> {
             unreachable!()
         }
     }
+
+    pub(crate) fn offset(&self) -> Offset {
+        match self {
+            Self::Allocated(allocated) => allocated.offset(),
+            Self::Offset((offset, _)) => *offset,
+        }
+    }
 }
 
 impl<T: Codec> Allocated<T> {

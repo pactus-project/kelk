@@ -1,6 +1,5 @@
 use crate::storage::codec::Codec;
 use crate::Codec;
-use core::mem::size_of;
 
 #[derive(Codec)]
 pub(super) struct Header {
@@ -11,10 +10,10 @@ pub(super) struct Header {
 }
 
 impl Header {
-    pub fn new<I: Sized>() -> Self {
+    pub fn new<I: Codec>() -> Self {
         Self {
             count: 0,
-            size_of_item: size_of::<I>() as u16,
+            size_of_item: I::PACKED_LEN as u16,
             head_offset: 0,
             tail_offset: 0,
         }

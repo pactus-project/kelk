@@ -5,12 +5,8 @@ use super::codec::Codec;
 use super::error::Error;
 use super::Offset;
 use alloc::boxed::Box;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::mem::{self, size_of};
+use alloc::string::ToString;
 use core::result::Result;
-use core::slice;
-use core::str::from_utf8;
 use kelk_env::StorageAPI;
 
 macro_rules! impl_num {
@@ -46,13 +42,12 @@ pub struct Storage {
 impl Storage {
     /// creates a new instance of storage
     pub fn create(api: Box<dyn StorageAPI>) -> Result<Self, Error> {
-        api.write(0, &[1])?; // version = 1
-        api.write(1, &[0])?; // reserved = 0
-        api.write(2, &[1, 0])?; // stack size = 256
+        api.write(0, &[1, 0])?; // version = 1
+        api.write(2, &[0, 1])?; // stack size = 256
         api.write(4, &[0; 256 * 4])?; // stack
         api.write(1028, &[0, 0, 4, 8])?; // free storage pos
 
-        let mut storage = Storage {
+        let storage = Storage {
             api,
             stack_size: 256,
         };
@@ -64,14 +59,13 @@ impl Storage {
 
     ///
     pub fn load(api: Box<dyn StorageAPI>) -> Result<Self, Error> {
-        let ver = api.read(0, 1)?;
-        let res = api.read(1, 1)?;
+        let ver = api.read(0, 2)?;
         let stack_size = api.read(2, 2)?;
-        if !ver.eq(&[1]) || !res.eq(&[0]) || !stack_size.eq(&[1, 0]) {
+        if !ver.eq(&[1, 0]) || !stack_size.eq(&[0, 1]) {
             return Err(Error::GenericError("invalid storage file".to_string()));
         }
 
-        let mut storage = Storage {
+        let storage = Storage {
             api,
             stack_size: 256,
         };
@@ -85,13 +79,15 @@ impl Storage {
 
     ///
     pub fn allocate<T: Codec>(&self, data: T) -> Result<Allocated<T>, Error> {
-        // Updating allocation pos
         let mut free_pos = self.read_u32(1028)?;
-        *free_pos.data_mut() += size_of::<T> as u32;
-        self.write_u32(&free_pos)?;
 
         // Creating new allocation
         let allocated = Allocated::new(*free_pos.data(), data);
+
+        // Updating allocation pos
+        *free_pos.data_mut() += T::PACKED_LEN as u32;
+        self.write_u32(&free_pos)?;
+
         Ok(allocated)
     }
 
@@ -102,7 +98,7 @@ impl Storage {
 
         // stack_offset = (stack_index * 4) + 4
         let header_size = 4;
-        Ok(((stack_index as usize * size_of::<Offset>()) + header_size) as Offset)
+        Ok(((stack_index as usize * Offset::PACKED_LEN) + header_size) as Offset)
     }
 
     // pub(crate) fn fill_stack_at(&self, stack_index: u16, offset: Offset) -> Result<(), Error> {
@@ -147,7 +143,7 @@ impl Storage {
     /// Note that struct `T` should be `Codec`.
     #[inline]
     pub(crate) fn read<T: Codec>(&self, offset: u32) -> Result<Allocated<T>, Error> {
-        let bytes = self.api.read(offset, size_of::<T>() as u32)?;
+        let bytes = self.api.read(offset, T::PACKED_LEN as u32)?;
         let data = T::from_bytes(&bytes);
         Ok(Allocated::new(offset, data))
     }
