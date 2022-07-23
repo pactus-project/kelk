@@ -1,8 +1,8 @@
 //! Storage trait to read and write primitives
 
-use super::allocated::{Allocated, Offset};
 use super::codec::Codec;
 use super::error::Error;
+use super::Offset;
 use alloc::boxed::Box;
 use alloc::string::ToString;
 use core::result::Result;
@@ -86,19 +86,6 @@ impl Storage {
 
         Ok(cur_free_pos)
     }
-
-    // pub fn allocate_raw(&self, length: u32) -> Result<Allocated<()>, Error> {
-    //     let mut free_pos = self.read_u32(1028)?;
-
-    //     // Creating new allocation
-    //     let allocated = Allocated::new(free_pos.data, ());
-
-    //     // Updating allocation pos
-    //     free_pos.data += length;
-    //     self.write_u32(&free_pos)?;
-
-    //     Ok(allocated)
-    // }
 
     fn stack_offset(&self, stack_index: u16) -> Result<Offset, Error> {
         if stack_index > self.stack_size {

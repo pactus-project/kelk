@@ -1,12 +1,15 @@
 //! Storage Linked List
 //!
 //! Storage Linked List, is a singly linked list that instead of using Random Access Memory (RAM),
-//! it uses storage file. Therefore it's permanently store inside contract's storage.
+//! it uses storage file. Therefore it's permanently stored inside contract's storage.
 //!
 
-use crate::storage::allocated::{Allocated, Offset};
+mod header;
+
+use self::header::Header;
 use crate::storage::codec::Codec;
 use crate::storage::error::Error;
+use crate::storage::Offset;
 use crate::storage::Storage;
 use crate::Codec;
 use core::iter::IntoIterator;
@@ -22,7 +25,7 @@ pub struct StorageLinkedList<'a, T: Codec> {
 }
 
 #[derive(Codec)]
-pub(super) struct Node<T: Codec> {
+pub(self) struct Node<T: Codec> {
     pub item: T,
     pub next: Offset,
 }
@@ -33,30 +36,11 @@ impl<T: Codec> Node<T> {
     }
 }
 
-#[derive(Codec)]
-pub(super) struct Header {
-    pub count: u32,
-    pub size_of_item: u16,
-    pub head_offset: u32,
-    pub tail_offset: u32,
-}
-
-impl Header {
-    pub fn new<T: Codec>() -> Self {
-        Self {
-            count: 0,
-            size_of_item: T::PACKED_LEN as u16,
-            head_offset: 0,
-            tail_offset: 0,
-        }
-    }
-}
-
 impl<'a, T: Codec> StorageLinkedList<'a, T> {
     /// Creates a new instance of `StorageLinkedList`.
     pub fn create(storage: &'a Storage) -> Result<Self, Error> {
-        let header = Header::new::<T>();
         let offset = storage.allocate(Header::PACKED_LEN)?;
+        let header = Header::new::<T>();
         storage.write(offset, &header)?;
 
         Ok(StorageLinkedList {
@@ -69,7 +53,9 @@ impl<'a, T: Codec> StorageLinkedList<'a, T> {
 
     /// Loads the Storage Linked List at the given offset
     pub fn load(storage: &'a Storage, offset: Offset) -> Result<Self, Error> {
-        let header = storage.read(offset)?;
+        let header: Header = storage.read(offset)?;
+
+        debug_assert_eq!(header.item_len, T::PACKED_LEN as u16);
 
         Ok(StorageLinkedList {
             storage,
@@ -92,7 +78,7 @@ impl<'a, T: Codec> StorageLinkedList<'a, T> {
         if self.header.count == 0 {
             self.header.head_offset = offset;
         } else {
-            let mut tail: Node::<T> = self.storage.read(self.header.tail_offset)?;
+            let mut tail: Node<T> = self.storage.read(self.header.tail_offset)?;
             tail.next = offset;
             self.storage.write(self.header.tail_offset, &tail)?;
         }
@@ -145,14 +131,15 @@ mod tests {
     use alloc::vec::Vec;
 
     #[test]
-    fn test_push_back() {
+    fn test_linked_list() {
         let storage = mock_storage(4 * 1024);
-        let mut linked_list = StorageLinkedList::<i32>::create(&storage).unwrap();
-        linked_list.push_back(1).unwrap();
-        linked_list.push_back(2).unwrap();
-        linked_list.push_back(3).unwrap();
+        let mut list_1 = StorageLinkedList::<i32>::create(&storage).unwrap();
+        list_1.push_back(1).unwrap();
+        list_1.push_back(2).unwrap();
+        list_1.push_back(3).unwrap();
 
-        let iter = linked_list.into_iter();
+        let mut list_2 = StorageLinkedList::<i32>::load(&storage, list_1.offset()).unwrap();
+        let iter = list_2.into_iter();
         let all_items: Vec<i32> = iter.map(|n| n).collect();
         assert!(all_items.eq(&[1, 2, 3]));
     }

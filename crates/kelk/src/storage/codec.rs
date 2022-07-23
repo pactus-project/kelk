@@ -4,7 +4,7 @@
 //! (that is, most significant byte first, also known as "big-endian").
 //!
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::vec::Vec;
 
 /// `Codec` trait defines functions to serialize types as bytes and deserialize from bytes
 /// in big-endian (network) byte order.
