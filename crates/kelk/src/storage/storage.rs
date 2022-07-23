@@ -5,6 +5,7 @@ use super::error::Error;
 use super::Offset;
 use alloc::boxed::Box;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 use core::result::Result;
 use kelk_env::StorageAPI;
 
@@ -119,8 +120,8 @@ impl Storage {
 
     impl_num!(bool, 1, read_bool, write_bool);
 
-    /// reads `T` from the storage file at the given `offset`.
-    /// Note that struct `T` should be `Codec`.
+    /// Reads `T` from the storage file at the given `offset`.
+    /// Note that `T` should be `Codec`.
     #[inline]
     pub(crate) fn read<T: Codec>(&self, offset: u32) -> Result<T, Error> {
         let data = self.api.read(offset, T::PACKED_LEN as u32)?;
@@ -128,11 +129,23 @@ impl Storage {
         Ok(value)
     }
 
-    /// writes `T` to the storage file at the given `offset`.
+    /// Writes `T` to the storage file at the given `offset`.
     /// Note that `T` should be `Codec`.
     #[inline]
     pub(crate) fn write<T: Codec>(&self, offset: Offset, value: &T) -> Result<(), Error> {
         let data = value.to_bytes();
+        Ok(self.api.write(offset, &data)?)
+    }
+
+    /// Reads slice of bytes of size `length` from the storage file at the given `offset`.
+    #[inline]
+    pub(crate) fn read_bytes(&self, offset: u32, length: u32) -> Result<Vec<u8>, Error> {
+        Ok(self.api.read(offset, length)?)
+    }
+
+    /// Writes bytes slice to the storage file at the given `offset`.
+    #[inline]
+    pub(crate) fn write_bytes(&self, offset: Offset, data: &[u8]) -> Result<(), Error> {
         Ok(self.api.write(offset, &data)?)
     }
 }

@@ -6,6 +6,8 @@
 
 mod header;
 
+use alloc::vec::Vec;
+
 use self::header::Header;
 use crate::storage::codec::Codec;
 use crate::storage::error::Error;
@@ -51,14 +53,20 @@ impl<'a, T: Codec> StorageVec<'a, T> {
             _phantom: PhantomData,
         })
     }
+
     /// Returns the offset of `StorageVector` in the storage file.
     pub fn offset(&self) -> Offset {
         self.offset
     }
 
-    /// Returns the number of elements in the vector, also referred to as its ‘length’.
-    pub fn len(&self) -> u32 {
-        self.header.count
+    /// Returns the number of elements in the `StorageVector`, also referred to as its ‘length’.
+    pub fn len(&self) -> usize {
+        self.header.count as usize
+    }
+
+    /// Returns the number of elements the `StorageVector` can hold without reallocating.
+    pub fn capacity(&self) -> usize {
+        self.header.capacity as usize
     }
 
     /// Returns true if the vector contains no elements.
@@ -88,6 +96,41 @@ impl<'a, T: Codec> StorageVec<'a, T> {
         let offset = self.item_offset(index)?;
         let item = self.storage.read(offset)?;
         Ok(Some(item))
+    }
+
+    ///
+    pub fn set_slice(&mut self, slice: &[T]) -> Result<(), Error> {
+        if slice.len() > self.capacity() {
+            return Err(Error::OutOfCapacity);
+        }
+        let mut offset = self.header.data_offset;
+        for v in slice {
+            self.storage.write(offset, v)?;
+            offset += T::PACKED_LEN as u32;
+        }
+
+        // update header
+        self.header.count = slice.len() as u32;
+        self.storage.write(self.offset, &self.header)
+    }
+
+    ///
+    pub fn set_bytes(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        if bytes.len() > (self.capacity() * self.header.value_len as usize) {
+            return Err(Error::OutOfCapacity);
+        }
+
+        self.storage.write_bytes(self.header.data_offset, &bytes);
+
+        // update header
+        self.header.count = bytes.len() as u32 / self.header.value_len as u32;
+        self.storage.write(self.offset, &self.header)
+    }
+
+    ///
+    pub fn get_bytes(&self) -> Result<Vec<u8>, Error> {
+        let length = self.header.count * self.header.value_len as u32;
+        self.storage.read_bytes(self.header.data_offset, length)
     }
 
     fn item_offset(&self, index: u32) -> Result<Offset, Error> {

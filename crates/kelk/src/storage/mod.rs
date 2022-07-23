@@ -7,6 +7,7 @@ pub mod linked_list;
 pub mod mock;
 pub mod storage;
 pub mod vec;
+pub mod str;
 
 pub use storage::Storage;
 

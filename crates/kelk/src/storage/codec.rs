@@ -19,26 +19,6 @@ pub trait Codec {
     fn from_bytes(bytes: &[u8]) -> Self;
 }
 
-impl Codec for bool {
-    const PACKED_LEN: usize = 1;
-
-    #[inline]
-    fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            true => [1].to_vec(),
-            false => [0].to_vec(),
-        }
-    }
-
-    #[inline]
-    fn from_bytes(bytes: &[u8]) -> Self {
-        match bytes[0] {
-            0 => false,
-            _ => true,
-        }
-    }
-}
-
 macro_rules! impl_codec_for_integer {
     ($type:ty, $size:expr) => {
         impl Codec for $type {
@@ -121,6 +101,26 @@ impl_codec_for_array!([u8; 29], 29);
 impl_codec_for_array!([u8; 30], 30);
 impl_codec_for_array!([u8; 31], 31);
 impl_codec_for_array!([u8; 32], 32);
+
+impl Codec for bool {
+    const PACKED_LEN: usize = 1;
+
+    #[inline]
+    fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            true => [1].to_vec(),
+            false => [0].to_vec(),
+        }
+    }
+
+    #[inline]
+    fn from_bytes(bytes: &[u8]) -> Self {
+        match bytes[0] {
+            0 => false,
+            _ => true,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
