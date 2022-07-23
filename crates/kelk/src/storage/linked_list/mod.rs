@@ -140,7 +140,7 @@ mod tests {
 
         let mut list_2 = StorageLinkedList::<i32>::load(&storage, list_1.offset()).unwrap();
         let iter = list_2.into_iter();
-        let all_items: Vec<i32> = iter.map(|n| n).collect();
+        let all_items: Vec<i32> = iter.collect();
         assert!(all_items.eq(&[1, 2, 3]));
     }
 }

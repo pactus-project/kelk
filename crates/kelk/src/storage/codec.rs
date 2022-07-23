@@ -115,10 +115,7 @@ impl Codec for bool {
 
     #[inline]
     fn from_bytes(bytes: &[u8]) -> Self {
-        match bytes[0] {
-            0 => false,
-            _ => true,
-        }
+        !matches!(bytes[0], 0)
     }
 }
 

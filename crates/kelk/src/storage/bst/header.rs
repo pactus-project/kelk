@@ -1,5 +1,5 @@
-use crate::storage::Offset;
 use crate::storage::codec::Codec;
+use crate::storage::Offset;
 use crate::Codec;
 
 #[derive(Codec)]
@@ -16,7 +16,7 @@ impl Header {
             key_len: K::PACKED_LEN as u16,
             value_len: K::PACKED_LEN as u16,
             count: 0,
-            root_offset:0,
+            root_offset: 0,
         }
     }
 }

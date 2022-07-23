@@ -1,5 +1,5 @@
-use crate::{Codec, storage::Offset};
 use crate::storage::codec::Codec;
+use crate::{storage::Offset, Codec};
 
 #[derive(Codec)]
 pub(super) struct Header {

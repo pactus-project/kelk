@@ -35,9 +35,14 @@ impl<'a> StorageString<'a> {
         self.vec.len()
     }
 
+    /// Returns `true` if this `StorageString` has a length of zero, and `false` otherwise.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     ///
     pub fn set_string(&mut self, str: &str) -> Result<(), Error> {
-        self.vec.set_bytes(&str.as_bytes())
+        self.vec.set_bytes(str.as_bytes())
     }
 
     ///
@@ -57,7 +62,7 @@ mod tests {
     fn test_string() {
         let storage = mock_storage(1024 * 1024);
         let mut str_1 = StorageString::create(&storage, 16).unwrap();
-        str_1.set_string(&"foo").unwrap();
+        str_1.set_string("foo").unwrap();
 
         let str_2 = StorageString::load(&storage, str_1.offset()).unwrap();
         assert_eq!("foo", str_2.get_string().unwrap());

@@ -69,12 +69,12 @@ impl<'a, T: Codec> StorageVec<'a, T> {
         self.header.capacity as usize
     }
 
-    /// Returns true if the vector contains no elements.
+    /// Returns `true` if the `StorageVector` contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Appends an element to the back of a vector.
+    /// Appends an element to the back of a `StorageVector`.
     pub fn push(&mut self, value: T) -> Result<(), Error> {
         if self.header.count >= self.header.capacity {
             return Err(Error::OutOfCapacity);
@@ -120,7 +120,7 @@ impl<'a, T: Codec> StorageVec<'a, T> {
             return Err(Error::OutOfCapacity);
         }
 
-        self.storage.write_bytes(self.header.data_offset, &bytes);
+        self.storage.write_bytes(self.header.data_offset, bytes)?;
 
         // update header
         self.header.count = bytes.len() as u32 / self.header.value_len as u32;
