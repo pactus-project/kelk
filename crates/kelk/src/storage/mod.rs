@@ -172,7 +172,7 @@ pub mod tests {
     use super::Storage;
     use crate::storage::codec::Codec;
     use crate::storage::mock::mock_storage;
-    use kelk_derive::Codec;
+    use crate::Codec;
 
     #[test]
     fn test_storage_load() {

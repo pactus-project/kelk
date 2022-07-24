@@ -12,7 +12,7 @@ use syn::{
 /// It can be added to the contract's instantiate, process and query functions
 /// like this:
 /// ```
-/// use kelk::kelk_derive;
+/// use kelk::kelk_entry;
 /// use kelk::context::Context;
 ///
 /// type InstantiateMsg = ();
@@ -21,17 +21,17 @@ use syn::{
 ///
 /// enum Error {};
 ///
-/// #[kelk_derive(instantiate)]
+/// #[kelk_entry]
 /// pub fn instantiate(ctx: Context, msg: InstantiateMsg) -> Result<(), Error> {
 ///    todo!();
 /// }
 ///
-/// #[kelk_derive(process)]
+/// #[kelk_entry]
 /// pub fn process(ctx: Context, msg: ProcessMsg) -> Result<(), Error> {
 ///   todo!();
 /// }
 ///
-/// #[kelk_derive(query)]
+/// #[kelk_entry]
 /// pub fn query(ctx: Context, msg: QueryMsg) -> Result<(), Error> {
 ///   todo!();
 /// }
@@ -40,13 +40,19 @@ use syn::{
 /// where `InstantiateMsg`, `ProcessMsg`, and `QueryMsg` are contract defined
 /// types that implement CBOR encoding.
 #[proc_macro_attribute]
-pub fn kelk_derive(
+pub fn kelk_entry(
     _attr: proc_macro::TokenStream,
     mut item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let cloned = item.clone();
     let function = parse_macro_input!(cloned as syn::ItemFn);
     let name = function.sig.ident.to_string();
+
+    if name != "instantiate" && name != "process" && name != "query" {
+        return proc_macro::TokenStream::from(quote! {
+            compile_error!("entry function should be either \"instantiate\", \"process\", or \"query\""),
+        });
+    }
 
     let new_code = format!(
         r##"
@@ -55,9 +61,9 @@ pub fn kelk_derive(
             #[no_mangle]
             extern "C" fn {name}(msg_ptr: u64) -> u64 {{
                 let ctx = kelk::context::OwnedContext {{
-                    storage: kelk::storage::Storage::new(
+                    storage: kelk::storage::Storage::create(
                         kelk::alloc::boxed::Box::new(kelk::Kelk::new())),
-                    blockchain: kelk::blockchain::Blockchain::new(
+                    blockchain: kelk::blockchain::Blockchain::create(
                         kelk::alloc::boxed::Box::new(kelk::Kelk::new())),
                 }};
                 kelk::do_{name}(&super::{name}, ctx.as_ref(), msg_ptr)
