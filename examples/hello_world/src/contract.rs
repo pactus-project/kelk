@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn test_instantiate() {
-        let ctx = mock_context(16);
+        let ctx = mock_context(1024);
         instantiate(ctx.as_ref(), ()).unwrap();
         let msg = query(ctx.as_ref(), ()).unwrap();
         assert_eq!(msg, "hello world!".to_string());
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_process() {
-        let ctx = mock_context(16);
+        let ctx = mock_context(1024);
         instantiate(ctx.as_ref(), ()).unwrap();
         process(ctx.as_ref(), "foo".to_string()).unwrap();
         let msg = query(ctx.as_ref(), ()).unwrap();
