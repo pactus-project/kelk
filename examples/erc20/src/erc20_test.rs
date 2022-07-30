@@ -53,3 +53,16 @@ fn test_allowance() {
         .is_ok());
     assert_eq!(erc20.allowance(owner, addr_1.clone()), 5);
 }
+
+#[test]
+fn test_mint() {
+    let mut ctx = mock_context(1024 * 1024);
+    let addr_1 = ctx.mocked_blockchain().generate_new_address();
+    let addr_2 = ctx.mocked_blockchain().generate_new_address();
+
+    let (mut erc20, _) = setup(&mut ctx);
+    assert!(erc20.mint(addr_1.clone(), 10).is_ok());
+    assert!(erc20.mint(addr_2.clone(), 100).is_ok());
+    assert_eq!(erc20.balance_of(addr_1.clone()).unwrap(), 10);
+    assert_eq!(erc20.balance_of(addr_2.clone()).unwrap(), 100);
+}
