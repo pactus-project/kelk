@@ -126,7 +126,7 @@ impl<'a> ERC20<'a> {
                 .insert(PairAddress(owner.clone(), spender.clone()), *amount)?;
             Ok(())
         } else {
-            return Err(Error::InvalidMsg);
+            Err(Error::InvalidMsg)
         }
     }
 
