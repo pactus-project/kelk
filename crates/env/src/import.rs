@@ -157,13 +157,13 @@ fn do_execute<'a, T, D: Decode<'a, ()>, R: Encode<()>, E: Encode<()>>(
 
 /// For testing
 #[cfg(test)]
-pub unsafe fn write_storage(_offset: Offset, _ptr: u32, _len: u32) -> i32 {
+pub unsafe fn write_storage(_offset: u32, _ptr: u32, _len: u32) -> i32 {
     0
 }
 
 /// For testing
 #[cfg(test)]
-pub unsafe fn read_storage(_offset: Offset, _ptr: u32, _len: u32) -> i32 {
+pub unsafe fn read_storage(_offset: u32, _ptr: u32, _len: u32) -> i32 {
     0
 }
 
