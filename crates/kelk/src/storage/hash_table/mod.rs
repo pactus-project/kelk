@@ -8,15 +8,12 @@
 mod header;
 
 use self::header::Header;
+use super::{bst, OFFSET_SIZE};
 use crate::storage::codec::Codec;
 use crate::storage::error::Error;
 use crate::storage::{Offset, Storage};
-
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
-
-
-use super::{bst, OFFSET_SIZE};
 
 fn compute_hash<K: Hash>(key: &K) -> u32 {
     let mut state = fnv::FnvHasher::default();
