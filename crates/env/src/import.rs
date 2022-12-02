@@ -22,7 +22,7 @@ extern "C" {
     /// `len` is the length of data.
     ///
     /// If the operation is successful it returns 0, otherwise it reruns the error code.
-    fn write_storage(offset: Offset, ptr: u32, len: u32) -> i32;
+    fn write_storage(offset: u32, ptr: u32, len: u32) -> i32;
     /// reads data from the given offset of storage file.
     ///
     /// # Arguments
@@ -32,7 +32,7 @@ extern "C" {
     /// `len` is the length of data.
     ///
     /// If the operation is successful it returns 0, otherwise it reruns the error code.
-    fn read_storage(offset: Offset, ptr: u32, len: u32) -> i32;
+    fn read_storage(offset: u32, ptr: u32, len: u32) -> i32;
 
     /// gets parameter value from the host.
     ///
@@ -65,7 +65,7 @@ impl Default for Kelk {
 }
 
 impl StorageAPI for Kelk {
-    fn read(&self, offset: Offset, data: &mut [u8]) -> Result<(), HostError> {
+    fn read(&self, offset: u32, data: &mut [u8]) -> Result<(), HostError> {
         let ptr = data.as_ptr() as u32;
         let len = data.len() as u32;
 
@@ -76,7 +76,7 @@ impl StorageAPI for Kelk {
         Ok(())
     }
 
-    fn write(&self, offset: Offset, data: &[u8]) -> Result<(), HostError> {
+    fn write(&self, offset: u32, data: &[u8]) -> Result<(), HostError> {
         let ptr = data.as_ptr() as u32;
         let len = data.len() as u32;
 
