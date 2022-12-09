@@ -1,3 +1,5 @@
+//! Kelk-derive contains derive macros for auto-generated code used in [Pactus](https://pactus.org/) blockchain.
+//!
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned, ToTokens};
 use std::str::FromStr;
@@ -23,17 +25,17 @@ use syn::{
 ///
 /// #[kelk_entry]
 /// pub fn instantiate(ctx: Context, msg: InstantiateMsg) -> Result<(), Error> {
-///    todo!();
+///    unimplemented!();
 /// }
 ///
 /// #[kelk_entry]
 /// pub fn process(ctx: Context, msg: ProcessMsg) -> Result<(), Error> {
-///   todo!();
+///   unimplemented!();
 /// }
 ///
 /// #[kelk_entry]
 /// pub fn query(ctx: Context, msg: QueryMsg) -> Result<(), Error> {
-///   todo!();
+///   unimplemented!();
 /// }
 /// ```
 ///
