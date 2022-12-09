@@ -50,7 +50,7 @@ pub fn kelk_entry(
     let function = parse_macro_input!(cloned as syn::ItemFn);
     let name = function.sig.ident.to_string();
 
-    let storage_method = match name.as_ref() {
+    let method = match name.as_ref() {
         "instantiate" => "create",
         "process" => "load",
         "query" => "load",
@@ -79,8 +79,6 @@ pub fn kelk_entry(
             }}
         }}
     "##,
-        name = name,
-        method = storage_method,
     );
 
     let entry = proc_macro::TokenStream::from_str(&gen_code).unwrap();
