@@ -1,15 +1,7 @@
-# on:
-#   push:
-#     tags:
-#       - v*.*.*
-
 on:
   push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
+    tags:
+      - v*.*.*
 
 name: Publishing Kelk to crates.io
 
@@ -20,14 +12,14 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/cargo@v1
 
-      # - name: docs check
-      #   run: cargo doc --no-deps
+      - name: docs check
+        run: cargo doc --no-deps
 
       - name: installing tomli
         run: pip3 install tomli
 
-      # - name: check the crates
-      #   run: python3 .github/workflows/publish.py check -v
+      - name: check the crates
+        run: python3 .github/workflows/publish.py check -v
 
       - name: publish the crates
         env:
