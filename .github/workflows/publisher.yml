@@ -23,6 +23,9 @@ jobs:
       # - name: docs check
       #   run: cargo doc --no-deps
 
+      - name: installing tomli
+        run: pip3 install tomli
+
       - name: check the crates
         run: python3 .github/workflows/publish.py check -v
 
