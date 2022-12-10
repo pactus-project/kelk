@@ -3,6 +3,6 @@ members = [
     "crates/allocator",
     "crates/derive",
     "crates/env",
-    "crates/kelk",    
+    "crates/kelk",
 ]
 exclude = ["examples"]
