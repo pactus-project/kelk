@@ -80,8 +80,8 @@ where
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// Removes a key from the `StorageBST`, returning the value at the key if the key was previously in the `StorageBST`.
+    /// Removes a key from the `StorageBST`, returning the value at the key
+    /// if the key was previously in the `StorageBST`.
     pub fn remove(&mut self, key: &K) -> Result<Option<V>, Error> {
         if self.header.items == 0 {
             return Ok(None);
@@ -100,8 +100,6 @@ where
             } else if node.key.lt(key) {
                 is_right = false;
                 offset = node.left;
-            } else {
-                break;
             }
 
             if offset.eq(&0) {
@@ -140,9 +138,9 @@ where
         if let Some(parent) = parent_offset {
             let mut parent_node: Node<K, V> = self.storage.read(parent)?;
             if is_right {
-                parent_node.left = offset;
-            } else {
                 parent_node.right = offset;
+            } else {
+                parent_node.left = offset;
             }
             self.storage.write(parent, &parent_node)?;
         } else {
@@ -303,22 +301,29 @@ mod tests {
         let storage = mock_storage(1024);
         let mut bst_1 = StorageBST::<i32, i64>::create(&storage).unwrap();
 
+        // remove from the empty bst
+        assert_eq!(None, bst_1.remove(&1).unwrap());
+
         // insert some key-value pairs
         assert_eq!(None, bst_1.insert(1, 10).unwrap());
         assert_eq!(None, bst_1.insert(3, 30).unwrap());
         assert_eq!(None, bst_1.insert(2, 20).unwrap());
+        assert_eq!(None, bst_1.insert(5, 50).unwrap());
+        assert_eq!(None, bst_1.insert(4, 40).unwrap());
 
         // remove a key-value pair
         assert_eq!(Some(10), bst_1.remove(&1).unwrap());
         assert_eq!(None, bst_1.find(&1).unwrap());
-        assert_eq!(2, bst_1.len());
+        assert_eq!(4, bst_1.len());
 
         // remove a key-value pair that doesn't exist
-        assert_eq!(None, bst_1.remove(&5).unwrap());
+        assert_eq!(None, bst_1.remove(&6).unwrap());
 
         // remove all key-value pairs
+        assert_eq!(Some(40), bst_1.remove(&4).unwrap());
         assert_eq!(Some(30), bst_1.remove(&3).unwrap());
         assert_eq!(Some(20), bst_1.remove(&2).unwrap());
+        assert_eq!(Some(50), bst_1.remove(&5).unwrap());
 
         let bst_2 = StorageBST::<i32, i64>::load(&storage, bst_1.offset()).unwrap();
         assert_eq!(0, bst_2.len());
