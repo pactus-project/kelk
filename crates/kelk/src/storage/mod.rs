@@ -9,6 +9,8 @@ pub mod mock;
 pub mod str;
 pub mod vec;
 
+mod allocator;
+
 /// is an alias for representing the offset of the allocated space inside the storage file.
 pub type Offset = u32;
 
@@ -108,17 +110,6 @@ impl Storage {
 
     /// Deallocates the storage space at the specific `offset` and `length`
     pub fn deallocate(&self, _offset: Offset, _length: u32) -> Result<(), Error> {
-        todo!()
-    }
-
-    /// Reallocates the the storage space at the given `offset` from `length` to `new_length`
-    /// and returns the new offset of reallocated area.
-    pub fn reallocate(
-        &self,
-        _offset: Offset,
-        _length: u32,
-        _new_length: u32,
-    ) -> Result<Offset, Error> {
         todo!()
     }
 
