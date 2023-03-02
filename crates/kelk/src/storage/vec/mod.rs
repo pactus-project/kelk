@@ -148,6 +148,7 @@ mod tests {
     #[test]
     fn test_vector() {
         let storage = mock_storage(1024);
+
         let mut vec_1 = StorageVec::<i32>::create(&storage, 2).unwrap();
         vec_1.push(1).unwrap();
         vec_1.push(2).unwrap();

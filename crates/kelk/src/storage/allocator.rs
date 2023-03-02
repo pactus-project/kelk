@@ -1,25 +1,23 @@
-use core::borrow::{Borrow, BorrowMut};
-use core::cell::{Ref, RefCell};
+
+
 
 use super::error::Error;
 use super::Offset;
 
 use alloc::boxed::Box;
 
-use alloc::rc::Rc;
-use kelk_env::{BlockchainAPI, StorageAPI};
+
+use kelk_env::{StorageAPI};
 
 #[derive(Debug, Clone)]
 pub(self) struct Deallocated {
     pub offset: Offset,
     pub freed_offset: Offset,
     pub freed_length: u32,
-    pub prev: Option<Box<Deallocated>>,
     pub next: Option<Box<Deallocated>>,
-    pub updated: bool,
 }
 
-pub(self) struct Allocator {
+pub(super) struct Allocator {
     allocation_offset: Offset,
     deallocated_head: Option<Box<Deallocated>>,
 }
@@ -55,9 +53,7 @@ impl Allocator {
                 offset,
                 freed_offset,
                 freed_length,
-                prev: prv_deallocated.clone(),
                 next: None,
-                updated: false,
             }));
 
             if deallocated.is_none() {
@@ -65,9 +61,9 @@ impl Allocator {
             }
 
             match prv_deallocated.as_mut() {
-                Some(mut item) => {
+                Some(item) => {
                     let mut b = item.clone();
-                    let c = &mut *b.clone();
+                    let _c = &mut *b.clone();
                     let mut d = &mut *b;
                     d.next = cur_deallocated;
                 }
@@ -86,29 +82,52 @@ impl Allocator {
     }
 
     pub fn allocate(&mut self, api: &dyn StorageAPI, length: u32) -> Result<Offset, Error> {
-        let mut deallocated_opt = self.deallocated_head.clone();
-        while let Some(mut deallocated) = deallocated_opt {
-            if deallocated.freed_length >= length {
-                if let Some(prv_deallocated) = deallocated.prev.as_mut() {
-                    prv_deallocated.next = deallocated.next.clone();
-                    prv_deallocated.updated = true;
+        if let Some(head) = self.deallocated_head.as_mut() {
+            if head.freed_length >= length {
+                let freed_offset = head.freed_offset;
+                let offset = head.offset;
+                head.freed_length -= length;
+                if head.freed_length == 0 {
+                    self.deallocated_head = head.next.clone();
+                    self.deallocate(api, offset, Self::size_of_deallocated_item())?;
+                }
+                return Ok(freed_offset);
+            } else {
+                let mut next_next: Option<Box<Deallocated>> = None;
+                let mut current = head;
+                let mut not_found = false;
+                loop {
+                    match current.next.as_mut() {
+                        Some(node) => {
+                            next_next = node.next.clone();
+                            if node.freed_length >= length {
+                                break;
+                            }
+
+                            current = current.next.as_mut().unwrap();
+                        }
+                        None => {
+                            not_found = current.freed_length < length;
+                            break;
+                        }
+                    };
                 }
 
-                if let Some(mut nxt_deallocated) = deallocated.clone().next {
-                    nxt_deallocated.prev = deallocated.prev.clone();
+                if not_found {
+                    // Nothing to do
+                } else if let Some(mut next) = current.next.clone() {
+                    let freed_offset = next.freed_offset;
+                    let offset = next.offset;
+                    next.freed_length -= length;
+                    if current.freed_length == 0 {
+                        self.deallocate(api, offset, Self::size_of_deallocated_item())?;
+                    } else if current.freed_length > next.freed_length {
+                        current.next = next_next;
+                        self.deallocate_item(api, next)?;
+                    }
+                    return Ok(freed_offset);
                 }
-
-                if deallocated.freed_length == length {
-                    self.deallocate(api, deallocated.offset, Self::size_of_deallocated_item())?;
-                } else {
-                    deallocated.freed_length = deallocated.freed_length - length;
-                    self.deallocate_item(api, deallocated.clone())?;
-                }
-
-                return Ok(deallocated.freed_offset);
             }
-
-            deallocated_opt = deallocated.next.clone();
         }
 
         let cur_free_pos = self.allocation_offset;
@@ -131,9 +150,7 @@ impl Allocator {
             offset: self.allocation_offset,
             freed_offset: offset,
             freed_length: length,
-            prev: None,
             next: None,
-            updated: true,
         });
 
         self.allocation_offset += Self::size_of_deallocated_item();
@@ -141,9 +158,9 @@ impl Allocator {
         self.deallocate_item(api, item)
     }
 
-    pub fn deallocate_item(
+    fn deallocate_item(
         &mut self,
-        api: &dyn StorageAPI,
+        _api: &dyn StorageAPI,
         mut item: Box<Deallocated>,
     ) -> Result<(), Error> {
         match self.deallocated_head.as_mut() {
@@ -152,37 +169,38 @@ impl Allocator {
                 self.deallocated_head = Some(item);
             }
             Some(head) => {
-                // Find the position to insert the new node, based on the key
-                let mut current = head;
-                let mut end_of_list = false;
-                loop {
-                    if current.freed_length >= item.freed_length {
-                        break;
-                    }
-                    match current.next.as_ref() {
-                        Some(mut node) => current = current.next.as_mut().unwrap(),
-                        None => {
-                            end_of_list = true;
-                            break;
-                        }
-                    };
-                }
-
-                if end_of_list {
-                    // Insert the new node at the end of the list
-                    item.prev = Some(current.clone());
-                    current.next = Some(item.clone());
-                } else if let Some(mut prev) = current.prev.clone() {
-                    // Insert the new node between two existing nodes
-                    item.prev = Some(prev.clone());
-                    //item.next = Some(current.clone());
-                    prev.next = Some(item.clone());
-                    current.prev = Some(item.clone());
-                } else {
+                if head.freed_length > item.freed_length {
                     // Insert the new node at the beginning of the list
-                    current.prev = Some(item.clone());
-                    item.next = Some(current.clone());
-                    self.deallocated_head = Some(item.clone());
+                    item.next = Some(head.clone());
+                    self.deallocated_head = Some(item);
+                } else {
+                    // Find the position to insert the new node, based on the key
+                    let mut current = head;
+                    let mut add_to_tail = false;
+                    loop {
+                        match current.next.as_mut() {
+                            Some(node) => {
+                                if node.freed_length >= item.freed_length {
+                                    break;
+                                }
+
+                                current = current.next.as_mut().unwrap();
+                            }
+                            None => {
+                                add_to_tail = current.freed_length < item.freed_length;
+                                break;
+                            }
+                        };
+                    }
+
+                    if add_to_tail {
+                        // Insert the new node at the end of the list
+                        current.next = Some(item);
+                    } else {
+                        // Insert the new node between two existing nodes
+                        item.next = current.next.clone();
+                        current.next = Some(item.clone());
+                    }
                 }
             }
         }
@@ -215,7 +233,7 @@ pub mod tests {
 
     use crate::storage::mock::mock_storage;
 
-    fn check_items(allocated: &Allocator, items: &[(Offset, Offset, u32)]) {
+    fn check_deallocated_items(allocated: &Allocator, items: &[(Offset, Offset, u32)]) {
         let mut index = 0;
         let mut current_opt = allocated.deallocated_head.clone();
         while let Some(current) = current_opt.as_ref() {
@@ -240,7 +258,21 @@ pub mod tests {
         allocator.deallocate(storage_1.api.as_ref(), 8, 4).unwrap();
         allocator.deallocate(storage_1.api.as_ref(), 12, 5).unwrap();
         allocator.deallocate(storage_1.api.as_ref(), 32, 1).unwrap();
+        allocator.deallocate(storage_1.api.as_ref(), 33, 2).unwrap();
 
-        check_items(&allocator, &[(64, 32, 1), (40, 8, 4), (52, 12, 5)]);
+        check_deallocated_items(
+            &allocator,
+            &[(64, 32, 1), (76, 33, 2), (40, 8, 4), (52, 12, 5)],
+        );
+
+        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 1).unwrap(), 32);
+        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 1).unwrap(), 33);
+        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 9).unwrap(), 64);
+        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 12).unwrap(), 100);
+
+        check_deallocated_items(
+            &allocator,
+            &[(76, 33, 1), (88, 64, 3), (40, 8, 4), (52, 12, 5)],
+        );
     }
 }

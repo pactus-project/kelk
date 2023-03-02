@@ -17,9 +17,13 @@ pub type Offset = u32;
 /// is the size of offset in bytes.
 const OFFSET_SIZE: u32 = 4;
 
+use self::allocator::Allocator;
 use self::codec::Codec;
 use self::error::Error;
 use alloc::boxed::Box;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::cell::RefCell;
 use core::result::Result;
 use kelk_env::StorageAPI;
 
@@ -50,44 +54,66 @@ pub struct Storage {
     // Storage APIs that are provided by the host
     api: Box<dyn StorageAPI>,
 
-    stack_size: u16,
-    allocation_offset: Offset,
+    // Storage allocator that are allocated and deallocate the storage
+    allocator: RefCell<Allocator>,
+
+    stack: Vec<Offset>,
 }
 
 impl Storage {
     /// creates a new instance of storage
     pub fn create(api: Box<dyn StorageAPI>) -> Result<Self, Error> {
-        let mut storage = Storage {
-            api,
-            stack_size: 0,
-            allocation_offset: 0,
-        };
-        storage.stack_size = 32;
-        storage.allocation_offset = (storage.stack_size as u32 * Offset::PACKED_LEN) + 8;
+        let header_data = [
+            1, 0, // version
+            32, 0, // stack_size,
+            0, 0, 0, 0, // reserved
+        ];
+        api.write(0, &header_data)?;
 
-        storage.write_u16(0, &1)?; // version
-        storage.write_u16(2, &storage.stack_size)?;
-        storage.write(storage.allocation_offset, &(storage.allocation_offset + 4))?;
+        let mut stack = [0u32; 32];
+        stack[0] = 136; // allocator offset
+        api.write(8, unsafe {
+            core::mem::transmute::<&[u32; 32], &[u8; 128]>(&stack)
+        })?;
+
+        let allocator_offset = 136;
+        let allocator = RefCell::new(Allocator::create(api.as_ref(), &allocator_offset)?);
+        let storage = Storage {
+            api,
+            allocator,
+            stack: stack.to_vec(),
+        };
 
         Ok(storage)
     }
 
     /// loads the storage instance
     pub fn load(api: Box<dyn StorageAPI>) -> Result<Self, Error> {
-        let mut storage = Storage {
-            api,
-            stack_size: 0,
-            allocation_offset: 0,
-        };
+        let mut header_data = alloc::vec![0u8; 8];
+        api.read(0, &mut header_data)?;
+        let version = unsafe { *(header_data[0..2].as_ptr() as *const u16) };
+        let stack_size = unsafe { *(header_data[2..4].as_ptr() as *const u16) };
+        let _reserved = unsafe { *(header_data[4..8].as_ptr() as *const u16) };
 
-        let ver = storage.read_u16(0)?;
-        if ver != 1 {
-            return Err(Error::InvalidOffset(0));
+        let mut stack = alloc::vec![0; stack_size as usize];
+        api.read(8, unsafe {
+            core::mem::transmute::<&mut [u32], &mut [u8]>(&mut stack[..])
+        })?;
+
+        if version != 1 {
+            return Err(Error::GenericError("version should be 1".to_string()));
         }
-        let stack_size = storage.read_u16(2)?;
 
-        storage.stack_size = stack_size;
-        storage.allocation_offset = (storage.stack_size as u32 * Offset::PACKED_LEN) + 8;
+        if stack_size != 32 {
+            return Err(Error::GenericError("version should be 1".to_string()));
+        }
+
+        let allocator = RefCell::new(Allocator::load(api.as_ref(), &stack[0])?);
+        let storage = Storage {
+            api,
+            allocator,
+            stack,
+        };
 
         Ok(storage)
     }
@@ -99,22 +125,20 @@ impl Storage {
     /// Allocates storage space with the specific `length` and returns the
     /// offset of allocated space in the storage file.
     pub fn allocate(&self, length: u32) -> Result<Offset, Error> {
-        let cur_free_pos = self.read(self.allocation_offset)?;
-        let next_free_pos = cur_free_pos + length;
-
-        // Updating allocation pos
-        self.write(self.allocation_offset, &next_free_pos)?;
-
-        Ok(cur_free_pos)
+        self.allocator
+            .borrow_mut()
+            .allocate(self.api.as_ref(), length)
     }
 
     /// Deallocates the storage space at the specific `offset` and `length`
-    pub fn deallocate(&self, _offset: Offset, _length: u32) -> Result<(), Error> {
-        todo!()
+    pub fn deallocate(&self, offset: Offset, length: u32) -> Result<(), Error> {
+        self.allocator
+            .borrow_mut()
+            .deallocate(self.api.as_ref(), offset, length)
     }
 
     fn stack_offset(&self, stack_index: u16) -> Result<Offset, Error> {
-        if stack_index > self.stack_size {
+        if stack_index > self.stack.len() as u16 {
             return Err(Error::StackOverflow);
         }
 
