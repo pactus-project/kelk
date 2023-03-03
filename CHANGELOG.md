@@ -4,6 +4,7 @@
 
 - Improved the performance of the `Codec` by implementing zero-copy conversion for `from_bytes` and `to_bytes` functions.
 - Adding `remove` method for `StorageBST`
+- Adding `Allocator` to manage allocation and de-allocation of the storage spaces.
 
 ## Version 0.3.0
 
