@@ -77,7 +77,7 @@ impl Storage {
         })?;
 
         let allocator_offset = 136;
-        let allocator = RefCell::new(Allocator::create(api.as_ref(), &allocator_offset)?);
+        let allocator = RefCell::new(Allocator::create(api.as_ref(), allocator_offset)?);
         let storage = Storage {
             api,
             allocator,
@@ -108,7 +108,7 @@ impl Storage {
             return Err(Error::GenericError("version should be 1".to_string()));
         }
 
-        let allocator = RefCell::new(Allocator::load(api.as_ref(), &stack[0])?);
+        let allocator = RefCell::new(Allocator::load(api.as_ref(), stack[0])?);
         let storage = Storage {
             api,
             allocator,

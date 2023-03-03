@@ -1,13 +1,8 @@
-
-
-
+/// TODO: refactor this code.
 use super::error::Error;
 use super::Offset;
-
 use alloc::boxed::Box;
-
-
-use kelk_env::{StorageAPI};
+use kelk_env::StorageAPI;
 
 #[derive(Debug, Clone)]
 pub(self) struct Deallocated {
@@ -18,66 +13,70 @@ pub(self) struct Deallocated {
 }
 
 pub(super) struct Allocator {
+    offset: Offset,
     allocation_offset: Offset,
     deallocated_head: Option<Box<Deallocated>>,
 }
 
 impl Allocator {
-    pub fn create(api: &dyn StorageAPI, offset: &Offset) -> Result<Self, Error> {
+    pub fn create(api: &dyn StorageAPI, offset: Offset) -> Result<Self, Error> {
         let allocation_offset = offset + 8;
         let data: &[u8; 4] = unsafe { core::mem::transmute(&allocation_offset) };
-        api.write(*offset, data)?; // allocation offset
-        api.write(*offset + 4, &[0; 4])?; // deallocation offset
+        api.write(offset, data)?; // allocation offset
+        api.write(offset + 4, &[0; 4])?; // deallocation offset
 
         Ok(Self {
+            offset,
             allocation_offset,
             deallocated_head: None,
         })
     }
 
-    pub fn load(api: &dyn StorageAPI, offset: &Offset) -> Result<Self, Error> {
+    pub fn load(api: &dyn StorageAPI, offset: Offset) -> Result<Self, Error> {
         let mut data: [u8; 8] = [0; 8];
-        api.read(*offset, data.as_mut_slice())?;
+        api.read(offset, data.as_mut_slice())?;
 
         let allocation_offset = unsafe { *(data[0..4].as_ptr() as *const Offset) };
         let deallocated_head_offset = unsafe { *(data[4..8].as_ptr() as *const Offset) };
 
-        let mut prv_deallocated: Option<Box<Deallocated>> = None;
-        let mut deallocated = None;
-
+        let mut deallocated_head: Option<Box<Deallocated>> = None;
         let mut offset = deallocated_head_offset;
-        while offset != 0 {
+        if deallocated_head_offset != 0 {
             let (freed_offset, freed_length, next_offset) =
                 Allocator::read_deallocated(api, &offset)?;
-            let cur_deallocated = Some(Box::new(Deallocated {
+            let mut head = Box::new(Deallocated {
                 offset,
                 freed_offset,
                 freed_length,
                 next: None,
-            }));
-
-            if deallocated.is_none() {
-                deallocated = cur_deallocated.clone();
-            }
-
-            match prv_deallocated.as_mut() {
-                Some(item) => {
-                    let mut b = item.clone();
-                    let _c = &mut *b.clone();
-                    let mut d = &mut *b;
-                    d.next = cur_deallocated;
-                }
-                None => {
-                    prv_deallocated = cur_deallocated;
-                }
-            };
+            });
 
             offset = next_offset;
+
+            let mut cur_deallocated = head.as_mut();
+            while offset != 0 {
+                let (freed_offset, freed_length, next_offset) =
+                    Allocator::read_deallocated(api, &offset)?;
+                let item = Box::new(Deallocated {
+                    offset,
+                    freed_offset,
+                    freed_length,
+                    next: None,
+                });
+
+                cur_deallocated.next = Some(item);
+                cur_deallocated = cur_deallocated.next.as_mut().unwrap();
+
+                offset = next_offset;
+            }
+
+            deallocated_head = Some(head);
         }
 
         Ok(Self {
+            offset,
             allocation_offset,
-            deallocated_head: deallocated,
+            deallocated_head,
         })
     }
 
@@ -91,6 +90,7 @@ impl Allocator {
                     self.deallocated_head = head.next.clone();
                     self.deallocate(api, offset, Self::size_of_deallocated_item())?;
                 }
+                self.update_deallocation_head(api)?;
                 return Ok(freed_offset);
             } else {
                 let mut next_next: Option<Box<Deallocated>> = None;
@@ -123,6 +123,7 @@ impl Allocator {
                         self.deallocate(api, offset, Self::size_of_deallocated_item())?;
                     } else if current.freed_length > next.freed_length {
                         current.next = next_next;
+                        Self::write_deallocated_item(api, current)?;
                         self.deallocate_item(api, next)?;
                     }
                     return Ok(freed_offset);
@@ -135,7 +136,7 @@ impl Allocator {
 
         // Updating allocation pos
         let data: &[u8; 4] = unsafe { core::mem::transmute(&self.allocation_offset) };
-        api.write(self.allocation_offset, data)?;
+        api.write(self.offset, data)?;
 
         Ok(cur_free_pos)
     }
@@ -146,33 +147,37 @@ impl Allocator {
         offset: Offset,
         length: u32,
     ) -> Result<(), Error> {
+        let item_offset = self.allocate(api, Self::size_of_deallocated_item())?;
         let item = Box::new(Deallocated {
-            offset: self.allocation_offset,
+            offset: item_offset,
             freed_offset: offset,
             freed_length: length,
             next: None,
         });
-
-        self.allocation_offset += Self::size_of_deallocated_item();
 
         self.deallocate_item(api, item)
     }
 
     fn deallocate_item(
         &mut self,
-        _api: &dyn StorageAPI,
+        api: &dyn StorageAPI,
         mut item: Box<Deallocated>,
     ) -> Result<(), Error> {
         match self.deallocated_head.as_mut() {
             None => {
                 // List is empty, so make the new node both the head and tail
                 self.deallocated_head = Some(item);
+
+                self.update_deallocation_head(api)?;
             }
             Some(head) => {
                 if head.freed_length > item.freed_length {
                     // Insert the new node at the beginning of the list
                     item.next = Some(head.clone());
+                    Self::write_deallocated_item(api, &item)?;
+
                     self.deallocated_head = Some(item);
+                    self.update_deallocation_head(api)?;
                 } else {
                     // Find the position to insert the new node, based on the key
                     let mut current = head;
@@ -195,11 +200,17 @@ impl Allocator {
 
                     if add_to_tail {
                         // Insert the new node at the end of the list
+                        Self::write_deallocated_item(api, &item)?;
+
                         current.next = Some(item);
+                        Self::write_deallocated_item(api, current)?;
                     } else {
                         // Insert the new node between two existing nodes
                         item.next = current.next.clone();
-                        current.next = Some(item.clone());
+                        Self::write_deallocated_item(api, &item)?;
+
+                        current.next = Some(item);
+                        Self::write_deallocated_item(api, current)?;
                     }
                 }
             }
@@ -216,14 +227,39 @@ impl Allocator {
         api: &dyn StorageAPI,
         offset: &Offset,
     ) -> Result<(Offset, u32, Offset), Error> {
-        let mut data: [u8; 12] = [0; 12];
-        api.read(*offset, data.as_mut_slice())?;
+        let mut buf: [u8; 12] = [0; 12];
+        api.read(*offset, buf.as_mut_slice())?;
 
-        let freed_offset = unsafe { *(data[0..4].as_ptr() as *const Offset) };
-        let freed_length = unsafe { *(data[4..8].as_ptr() as *const u32) };
-        let next_offset = unsafe { *(data[8..12].as_ptr() as *const Offset) };
+        let freed_offset = unsafe { *(buf[0..4].as_ptr() as *const Offset) };
+        let freed_length = unsafe { *(buf[4..8].as_ptr() as *const u32) };
+        let next_offset = unsafe { *(buf[8..12].as_ptr() as *const Offset) };
 
         Ok((freed_offset, freed_length, next_offset))
+    }
+
+    fn write_deallocated_item(api: &dyn StorageAPI, item: &Deallocated) -> Result<(), Error> {
+        let mut buf: [u8; 12] = [0; 12];
+        let next_offset = match &item.next {
+            Some(next) => next.offset,
+            None => 0,
+        };
+
+        unsafe {
+            *(buf.as_mut_ptr() as *mut u32) = item.freed_offset;
+            *(buf.as_mut_ptr().add(4) as *mut u32) = item.freed_length;
+            *(buf.as_mut_ptr().add(8) as *mut u32) = next_offset;
+        }
+
+        Ok(api.write(item.offset, &buf)?)
+    }
+
+    fn update_deallocation_head(&self, api: &dyn StorageAPI) -> Result<(), Error> {
+        let deallocated_head_offset = match &self.deallocated_head {
+            Some(item) => item.offset,
+            None => 0,
+        };
+        let data: &[u8; 4] = unsafe { core::mem::transmute(&deallocated_head_offset) };
+        Ok(api.write(self.offset + 4, data)?)
     }
 }
 
@@ -231,11 +267,12 @@ impl Allocator {
 pub mod tests {
     use super::*;
 
-    use crate::storage::mock::mock_storage;
+    use crate::storage::{mock::mock_storage, Storage};
 
-    fn check_deallocated_items(allocated: &Allocator, items: &[(Offset, Offset, u32)]) {
+    fn check_deallocated_items(storage: &Storage, items: &[(Offset, Offset, u32)]) {
+        let allocator = Allocator::load(storage.api.as_ref(), 0).unwrap();
         let mut index = 0;
-        let mut current_opt = allocated.deallocated_head.clone();
+        let mut current_opt = allocator.deallocated_head;
         while let Some(current) = current_opt.as_ref() {
             assert_eq!(current.offset, items[index].0);
             assert_eq!(current.freed_offset, items[index].1);
@@ -250,29 +287,41 @@ pub mod tests {
 
     #[test]
     fn test_deallocate() {
-        let storage_1 = mock_storage(1024);
-        let mut allocator = Allocator::create(storage_1.api.as_ref(), &0).unwrap();
+        let storage = mock_storage(1024);
+        let mut allocator = Allocator::create(storage.api.as_ref(), 0).unwrap();
 
-        let offset = allocator.allocate(storage_1.api.as_ref(), 32).unwrap();
+        let offset = allocator.allocate(storage.api.as_ref(), 32).unwrap();
         assert_eq!(offset, 8);
-        allocator.deallocate(storage_1.api.as_ref(), 8, 4).unwrap();
-        allocator.deallocate(storage_1.api.as_ref(), 12, 5).unwrap();
-        allocator.deallocate(storage_1.api.as_ref(), 32, 1).unwrap();
-        allocator.deallocate(storage_1.api.as_ref(), 33, 2).unwrap();
+        allocator.deallocate(storage.api.as_ref(), 8, 4).unwrap();
+        allocator.deallocate(storage.api.as_ref(), 12, 5).unwrap();
+        allocator.deallocate(storage.api.as_ref(), 32, 1).unwrap();
+        allocator.deallocate(storage.api.as_ref(), 33, 2).unwrap();
 
         check_deallocated_items(
-            &allocator,
+            &storage,
             &[(64, 32, 1), (76, 33, 2), (40, 8, 4), (52, 12, 5)],
         );
 
-        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 1).unwrap(), 32);
-        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 1).unwrap(), 33);
-        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 9).unwrap(), 64);
-        assert_eq!(allocator.allocate(storage_1.api.as_ref(), 12).unwrap(), 100);
+        assert_eq!(allocator.allocate(storage.api.as_ref(), 1).unwrap(), 32);
+        assert_eq!(allocator.allocate(storage.api.as_ref(), 1).unwrap(), 33);
+        assert_eq!(allocator.allocate(storage.api.as_ref(), 9).unwrap(), 64);
+        assert_eq!(allocator.allocate(storage.api.as_ref(), 12).unwrap(), 100);
 
         check_deallocated_items(
-            &allocator,
+            &storage,
             &[(76, 33, 1), (88, 64, 3), (40, 8, 4), (52, 12, 5)],
         );
+    }
+
+    #[test]
+    fn test_allocation() {
+        let storage = mock_storage(1024);
+        let mut allocator_1 = Allocator::create(storage.api.as_ref(), 0).unwrap();
+
+        let offset = allocator_1.allocate(storage.api.as_ref(), 32).unwrap();
+        assert_eq!(offset, 8);
+
+        let allocator_2 = Allocator::load(storage.api.as_ref(), 0).unwrap();
+        assert_eq!(allocator_1.allocation_offset, allocator_2.allocation_offset);
     }
 }
