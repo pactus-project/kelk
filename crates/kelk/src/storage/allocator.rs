@@ -34,43 +34,30 @@ impl Allocator {
 
     pub fn load(api: &dyn StorageAPI, offset: Offset) -> Result<Self, Error> {
         let mut data: [u8; 8] = [0; 8];
-        api.read(offset, data.as_mut_slice())?;
+        api.read(offset, &mut data)?;
 
         let allocation_offset = unsafe { *(data[0..4].as_ptr() as *const Offset) };
         let deallocated_head_offset = unsafe { *(data[4..8].as_ptr() as *const Offset) };
 
         let mut deallocated_head: Option<Box<Deallocated>> = None;
-        let mut offset = deallocated_head_offset;
         if deallocated_head_offset != 0 {
-            let (freed_offset, freed_length, next_offset) =
-                Allocator::read_deallocated(api, &offset)?;
-            let mut head = Box::new(Deallocated {
-                offset,
-                freed_offset,
-                freed_length,
-                next: None,
-            });
-
-            offset = next_offset;
-
-            let mut cur_deallocated = head.as_mut();
-            while offset != 0 {
-                let (freed_offset, freed_length, next_offset) =
-                    Allocator::read_deallocated(api, &offset)?;
-                let item = Box::new(Deallocated {
-                    offset,
+            let mut current = &mut deallocated_head;
+            let mut next_offset = deallocated_head_offset;
+            loop {
+                let (freed_offset, freed_length, next_item_offset) =
+                    Allocator::read_deallocated(api, &next_offset)?;
+                *current = Some(Box::new(Deallocated {
+                    offset: next_offset,
                     freed_offset,
                     freed_length,
                     next: None,
-                });
-
-                cur_deallocated.next = Some(item);
-                cur_deallocated = cur_deallocated.next.as_mut().unwrap();
-
-                offset = next_offset;
+                }));
+                current = &mut current.as_mut().unwrap().next;
+                next_offset = next_item_offset;
+                if next_offset == 0 {
+                    break;
+                }
             }
-
-            deallocated_head = Some(head);
         }
 
         Ok(Self {
