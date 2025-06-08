@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: actions-rs/cargo@v1
 
       - name: docs check
         run: cargo doc --no-deps

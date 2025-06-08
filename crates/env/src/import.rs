@@ -3,16 +3,18 @@
 //! Contract actors can call this imported function to interact with the
 //! blockchain and the storage file.
 
-use crate::api::{BlockchainAPI, StorageAPI};
-use crate::error::HostError;
-use crate::memory::Pointer;
+use crate::{
+    api::{BlockchainAPI, StorageAPI},
+    error::HostError,
+    memory::Pointer,
+};
 use alloc::vec::Vec;
 use core::any::Any;
 use minicbor::{Decode, Encode};
 
 #[cfg(not(test))]
 #[link(wasm_import_module = "pactus")]
-extern "C" {
+unsafe extern "C" {
     /// writes data at given offset of storage file.
     ///
     /// # Arguments
@@ -45,8 +47,6 @@ extern "C" {
     /// If the operation is successful it returns 0, otherwise it reruns the error code.
     fn get_param(param_id: u32, ptr: *mut u32, len: *mut u32) -> i32;
 }
-
-/// TODO: rename it to API or ExternalAPI or Externality
 
 /// The instant of Kelk.
 pub struct Kelk {}
@@ -176,21 +176,21 @@ pub unsafe fn get_param(_param_id: u32, _ptr: *mut u32, _len: *mut u32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alloc::vec;
+    use crate::{
+        alloc::vec,
+        export::{allocate, deallocate},
+    };
     use wasm_bindgen_test::*;
 
-    // Uncomment this test if should_panic supported by wasm_bindgen_test.
-    // https://github.com/rustwasm/wasm-bindgen/issues/2286
-    //
-    // #[wasm_bindgen_test]
-    // #[should_panic]
-    // fn test_allocation() {
-    //     let ptr = allocate(1);
-    //     deallocate(ptr);
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_panic_allocation() {
+        let ptr = allocate(1);
+        deallocate(ptr);
 
-    //     // Should panic here, because the pointer is freed before
-    //     deallocate(ptr);
-    // }
+        // Should panic here, because the pointer is freed before
+        deallocate(ptr);
+    }
 
     #[wasm_bindgen_test]
     fn test_instantiate() {

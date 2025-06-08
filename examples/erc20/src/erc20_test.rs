@@ -1,5 +1,5 @@
 use super::*;
-use kelk::mock::{mock_context, MockContext};
+use kelk::mock::{MockContext, mock_context};
 
 fn setup(ctx: &mut MockContext) -> (ERC20, Address) {
     let owner = ctx.mocked_blockchain().generate_new_address();

@@ -1,4 +1,3 @@
-
 ## Description
 
 A few sentences describing the the pull request.

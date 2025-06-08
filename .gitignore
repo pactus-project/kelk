@@ -11,3 +11,6 @@ Cargo.lock
 .todo
 
 .DS_Store
+
+# test coverage files
+lcov.info

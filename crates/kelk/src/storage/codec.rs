@@ -2,7 +2,6 @@
 //!
 //! In Kelk all multi-byte values are encoded in network byte order
 //! (that is, most significant byte first, also known as "big-endian").
-//!
 
 /// `Codec` trait defines functions to serialize types as bytes and deserialize from bytes
 /// in big-endian (network) byte order.
@@ -10,10 +9,12 @@ pub trait Codec {
     /// Borrows `self` and pack into `bytes` using big-endian representation.
     const PACKED_LEN: u32;
 
-    /// Returns the memory representation of this type as a byte array in big-endian (network) byte order.
+    /// Returns the memory representation of this type as a byte array in big-endian (network) byte
+    /// order.
     fn to_bytes(&self, bytes: &mut [u8]);
 
-    /// Creates a native endian value from its representation as a byte array in big-endian (network) byte order.
+    /// Creates a native endian value from its representation as a byte array in big-endian
+    /// (network) byte order.
     fn from_bytes(bytes: &[u8]) -> Self;
 }
 
@@ -25,17 +26,13 @@ macro_rules! impl_codec_for_integer {
             #[inline]
             fn to_bytes(&self, bytes: &mut [u8]) {
                 debug_assert_eq!(bytes.len(), Self::PACKED_LEN as usize);
-
-                unsafe {
-                    *(bytes.as_mut_ptr() as *mut $type) = *self;
-                }
+                bytes.copy_from_slice(&self.to_be_bytes());
             }
 
             #[inline]
             fn from_bytes(bytes: &[u8]) -> Self {
                 debug_assert_eq!(bytes.len(), Self::PACKED_LEN as usize);
-
-                unsafe { *(bytes.as_ptr() as *const $type) }
+                <$type>::from_be_bytes(bytes.try_into().expect("slice with incorrect length"))
             }
         }
     };

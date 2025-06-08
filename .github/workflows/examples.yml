@@ -12,15 +12,16 @@ jobs:
   testing:
     strategy:
       matrix:
-        examples: [hello_world, erc20]
+        examples: [hello_world, erc20, erc721]
 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust
         run: |
-          rustup toolchain install nightly --component rustfmt clippy
+          rustup toolchain install nightly --component rustfmt,clippy
           rustup toolchain install nightly --target wasm32-unknown-unknown
+
 
       - name: Compiling and testing ${{ matrix.examples }}
         run: |

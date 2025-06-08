@@ -1,19 +1,14 @@
 //! Storage Binary Search Tree
 //!
-//! Storage Binary Search Tree, is a Binary Search Tree or BST that instead of using Random Access Memory (RAM),
-//! it uses storage file. Therefore it's permanently stored inside contract's storage.
+//! Storage Binary Search Tree, is a Binary Search Tree or BST that instead of using Random Access
+//! Memory (RAM), it uses storage file. Therefore it's permanently stored inside contract's storage.
 
 mod header;
 mod node;
 
-use self::header::Header;
-use self::node::Node;
-use crate::storage::codec::Codec;
-use crate::storage::error::Error;
-use crate::storage::{Offset, Storage};
-use core::cmp::Ordering;
-use core::marker::PhantomData;
-use core::result::Result;
+use self::{header::Header, node::Node};
+use crate::storage::{Offset, Storage, codec::Codec, error::Error};
+use core::{cmp::Ordering, marker::PhantomData, result::Result};
 
 /// The instance of Storage Binary Search Tree
 pub struct StorageBST<'a, K, V>
@@ -65,19 +60,16 @@ where
     }
 
     /// Returns the offset of `StorageBST` in the storage file.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn offset(&self) -> Offset {
         self.header_offset
     }
 
     /// Returns the number of elements in the `StorageBST`.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn len(&self) -> u32 {
         self.header.items
     }
 
     /// Returns `true` if the `StorageBST` contains no elements.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -130,9 +122,9 @@ where
                                     } else {
                                         self.header.root_offset = 0
                                     }
-                                } //
-                                  // TODO: deallocate item here
-                                  //
+                                } /*
+                                   * TODO: deallocate item here
+                                   */
                             }
                         }
                         // The most complexity case: replace the value of the current node with
@@ -181,7 +173,8 @@ where
 
     /// Inserts a key-value pair into the tree.
     /// If the `StorageBST` did not have this key present, None is returned.
-    /// If the `StorageBST` did have this key present, the value is updated, and the old value is returned.
+    /// If the `StorageBST` did have this key present, the value is updated, and the old value is
+    /// returned.
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>, Error> {
         if self.header.items == 0 {
             // create a root node

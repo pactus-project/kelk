@@ -1,13 +1,13 @@
 [package]
 name = "erc721"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 kelk = { path = "../../crates/kelk" }
-minicbor = { version = "0.18", features = ["half", "derive"] }
+minicbor = { version = "1.0", features = ["half", "derive"] }
 wee_alloc = { version = "0.4", default-features = false }
 rand="0.3.14"
 

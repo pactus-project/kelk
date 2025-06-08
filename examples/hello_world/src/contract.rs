@@ -1,8 +1,5 @@
 use crate::error::Error;
-use kelk::alloc::string::String;
-use kelk::context::Context;
-use kelk::kelk_entry;
-use kelk::storage::str::StorageString;
+use kelk::{alloc::string::String, context::Context, kelk_entry, storage::str::StorageString};
 
 #[kelk_entry]
 pub fn instantiate(ctx: Context, _: ()) -> Result<(), Error> {
@@ -34,8 +31,7 @@ pub fn query(ctx: Context, _: ()) -> Result<String, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use kelk::alloc::string::ToString;
-    use kelk::mock::mock_context;
+    use kelk::{alloc::string::ToString, mock::mock_context};
 
     #[test]
     fn test_instantiate() {

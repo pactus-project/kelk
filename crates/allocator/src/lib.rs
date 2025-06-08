@@ -1,10 +1,9 @@
+#![allow(unexpected_cfgs)]
+
 //! Kelk-allocator providing memory allocator support for smart contracts in [Pactus](https://pactus.org/) blockchain.
-//!
 #![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
-// #![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
 
 // Use `wee_alloc` as the global allocator.
-// #[cfg(no_std)]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
@@ -13,7 +12,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 /// raise a `trap` the WebAssembly execution if we panic at runtime.
 #[cfg(no_std)]
 #[panic_handler]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
     ::core::intrinsics::abort();
 }
@@ -22,7 +21,7 @@ pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
 /// the execution with trap.
 #[cfg(no_std)]
 #[alloc_error_handler]
-#[no_mangle]
+#[unsafe(no_mangle)]
 fn oom(_: core::alloc::Layout) -> ! {
     ::core::intrinsics::abort();
 }
@@ -30,5 +29,5 @@ fn oom(_: core::alloc::Layout) -> ! {
 /// Needed for non-wasm targets.
 #[cfg(no_std)]
 #[lang = "eh_personality"]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn eh_personality() {}

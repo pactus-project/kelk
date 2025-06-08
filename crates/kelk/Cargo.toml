@@ -1,20 +1,19 @@
 [package]
 name = "kelk"
 version = "0.4.0"
-edition = "2021"
-authors = ["Pactus blockchain <admin@pactus.org>"]
+edition = "2024"
+authors = ["Pactus blockchain <info@pactus.org>"]
 license = "BSD-3-Clause-Clear"
 homepage = "https://pactus.org/"
 repository = "https://github.com/pactus-project/kelk"
 description = "Kelk provide basic materials for writhing WASM based contracts in Pactus blockchain."
 
-
 [dependencies]
 kelk-env = { path = "../env", version = "0.4.0" }
 kelk-derive = { path = "../derive", version = "0.4.0" }
 kelk-allocator = { path = "../allocator", version = "0.4.0" }
-minicbor = { version = "0.18", features = ["half", "derive", "alloc"] }
+minicbor = { version = "1.0", features = ["half", "derive", "alloc"] }
 doc-comment = "0.3"
-rand = { version = "0.8", features = ["small_rng"], default-features = false }
+rand = { version = "0.9", features = ["small_rng"], default-features = false }
 wee_alloc = { version = "0.4", default-features = false }
-fnv = { version = "1.0.7", default-features = false }
+fnv = { version = "1.0", default-features = false }

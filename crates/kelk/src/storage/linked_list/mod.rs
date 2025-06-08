@@ -3,19 +3,15 @@
 //! Storage Linked List, is an implementation of singly linked list that instead
 //! of using Random Access Memory (RAM), it uses storage file. Therefore it's
 //! permanently stored inside contract's storage.
-//!
 
 mod header;
 
 use self::header::Header;
-use crate::storage::codec::Codec;
-use crate::storage::error::Error;
-use crate::storage::Offset;
-use crate::storage::Storage;
-use crate::Codec;
-use core::iter::IntoIterator;
-use core::marker::PhantomData;
-use core::result::Result;
+use crate::{
+    Codec,
+    storage::{Offset, Storage, codec::Codec, error::Error},
+};
+use core::{iter::IntoIterator, marker::PhantomData, result::Result};
 
 /// The instance of `StorageLinkedList`
 pub struct StorageLinkedList<'a, T: Codec> {
@@ -29,7 +25,7 @@ pub struct StorageLinkedList<'a, T: Codec> {
 }
 
 #[derive(Codec)]
-pub(self) struct Node<T: Codec> {
+struct Node<T: Codec> {
     pub item: T,
     pub next: Offset,
 }
@@ -69,19 +65,16 @@ impl<'a, T: Codec> StorageLinkedList<'a, T> {
     }
 
     /// Returns the offset of `StorageLinkedList` in the storage file.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn offset(&self) -> Offset {
         self.header_offset
     }
 
     /// Returns the number of elements in the `StorageLinkedList`.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn len(&self) -> u32 {
         self.header.items
     }
 
     /// Returns `true` if the `StorageLinkedList` contains no elements.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

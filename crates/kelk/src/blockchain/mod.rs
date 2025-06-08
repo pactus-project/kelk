@@ -4,10 +4,8 @@ pub mod address;
 pub mod error;
 pub mod mock;
 
-use self::address::Address;
-use self::error::Error;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use self::{address::Address, error::Error};
+use alloc::{boxed::Box, vec::Vec};
 use kelk_env::BlockchainAPI;
 
 const PARAM_ID_LAST_BLOCK_HASH: u32 = 0x0001;

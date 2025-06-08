@@ -1,11 +1,22 @@
 //! Kelk-derive contains derive macros for auto-generated code used in [Pactus](https://pactus.org/) blockchain.
-//!
 use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use std::str::FromStr;
 use syn::{
-    parse_macro_input, parse_quote, spanned::Spanned, Data, DeriveInput, Fields, FieldsNamed,
-    FieldsUnnamed, GenericParam, Generics, Ident, Index, Type, TypeParamBound,
+    Data,
+    DeriveInput,
+    Fields,
+    FieldsNamed,
+    FieldsUnnamed,
+    GenericParam,
+    Generics,
+    Ident,
+    Index,
+    Type,
+    TypeParamBound,
+    parse_macro_input,
+    parse_quote,
+    spanned::Spanned,
 };
 
 /// The attribute macro to inject the code at the beginning of entry functions
@@ -14,8 +25,7 @@ use syn::{
 /// It can be added to the contract's instantiate, process and query functions
 /// like this:
 /// ```
-/// use kelk::kelk_entry;
-/// use kelk::context::Context;
+/// use kelk::{context::Context, kelk_entry};
 ///
 /// type InstantiateMsg = ();
 /// type ProcessMsg = ();
@@ -25,17 +35,17 @@ use syn::{
 ///
 /// #[kelk_entry]
 /// pub fn instantiate(ctx: Context, msg: InstantiateMsg) -> Result<(), Error> {
-///    unimplemented!();
+///     unimplemented!();
 /// }
 ///
 /// #[kelk_entry]
 /// pub fn process(ctx: Context, msg: ProcessMsg) -> Result<(), Error> {
-///   unimplemented!();
+///     unimplemented!();
 /// }
 ///
 /// #[kelk_entry]
 /// pub fn query(ctx: Context, msg: QueryMsg) -> Result<(), Error> {
-///   unimplemented!();
+///     unimplemented!();
 /// }
 /// ```
 ///
@@ -57,7 +67,7 @@ pub fn kelk_entry(
         _ => {
             return proc_macro::TokenStream::from(quote! {
                 compile_error!("entry function should be either \"instantiate\", \"process\", or \"query\""),
-            })
+            });
         }
     };
 
@@ -65,7 +75,7 @@ pub fn kelk_entry(
         r##"
         #[cfg(target_arch = "wasm32")]
         mod __wasm_export_{name} {{
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             extern "C" fn {name}(msg_ptr: u64) -> u64 {{
                 let ctx = kelk::context::OwnedContext {{
                     storage: kelk::storage::Storage::{method}(kelk::alloc::boxed::Box::new(kelk::Kelk::new()))
@@ -91,8 +101,7 @@ pub fn kelk_entry(
 /// # Examples
 ///
 /// ```
-/// use kelk::Codec;
-/// use kelk::storage::codec::Codec;
+/// use kelk::{Codec, storage::codec::Codec};
 ///
 /// #[derive(Codec)]
 /// struct Test {

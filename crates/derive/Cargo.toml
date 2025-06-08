@@ -1,8 +1,8 @@
 [package]
 name = "kelk-derive"
 version = "0.4.0"
-edition = "2021"
-authors = ["Pactus blockchain <admin@pactus.org>"]
+edition = "2024"
+authors = ["Pactus blockchain <info@pactus.org>"]
 license = "BSD-3-Clause-Clear"
 homepage = "https://pactus.org/"
 repository = "https://github.com/pactus-project/kelk"
@@ -12,7 +12,7 @@ description = "Kelk-derive contains derive macros for auto-generated code used i
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0", features = ["full"] }
+syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1.0"
 

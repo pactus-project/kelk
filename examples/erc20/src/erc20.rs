@@ -1,10 +1,10 @@
 use crate::error::Error;
-use kelk::blockchain::address::{Address, ADDRESS_ZERO};
-use kelk::context::Context;
-use kelk::storage::bst::StorageBST;
-use kelk::storage::codec::Codec;
-use kelk::storage::str::StorageString;
-use kelk::Codec;
+use kelk::{
+    Codec,
+    blockchain::address::{ADDRESS_ZERO, Address},
+    context::Context,
+    storage::{bst::StorageBST, codec::Codec, str::StorageString},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Codec)]
 struct PairAddress(Address, Address);
