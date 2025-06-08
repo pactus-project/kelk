@@ -26,17 +26,13 @@ macro_rules! impl_codec_for_integer {
             #[inline]
             fn to_bytes(&self, bytes: &mut [u8]) {
                 debug_assert_eq!(bytes.len(), Self::PACKED_LEN as usize);
-
-                unsafe {
-                    *(bytes.as_mut_ptr() as *mut $type) = *self;
-                }
+                bytes.copy_from_slice(&self.to_be_bytes());
             }
 
             #[inline]
             fn from_bytes(bytes: &[u8]) -> Self {
                 debug_assert_eq!(bytes.len(), Self::PACKED_LEN as usize);
-
-                unsafe { *(bytes.as_ptr() as *const $type) }
+                <$type>::from_be_bytes(bytes.try_into().expect("slice with incorrect length"))
             }
         }
     };
