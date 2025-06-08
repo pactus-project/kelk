@@ -92,7 +92,8 @@ impl<'a, T: Codec> StorageVec<'a, T> {
         Ok(Some(item))
     }
 
-    /// Sets the contents of the `StorageVector` from a slice, overwriting existing elements and updating the header.
+    /// Sets the contents of the `StorageVector` from a slice, overwriting existing elements and
+    /// updating the header.
     pub fn set_slice(&mut self, slice: &[T]) -> Result<(), Error> {
         if slice.len() > self.capacity() {
             return Err(Error::OutOfCapacity);
@@ -108,7 +109,8 @@ impl<'a, T: Codec> StorageVec<'a, T> {
         self.storage.write(self.offset, &self.header)
     }
 
-    /// Sets the contents of the `StorageVector` from a slice of bytes, updating the header accordingly.
+    /// Sets the contents of the `StorageVector` from a slice of bytes, updating the header
+    /// accordingly.
     pub fn set_bytes(&mut self, bytes: &[u8]) -> Result<(), Error> {
         if bytes.len() > (self.capacity() * self.header.value_len as usize) {
             return Err(Error::OutOfCapacity);

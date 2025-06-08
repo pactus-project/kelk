@@ -3,7 +3,7 @@ name = "hello_world"
 version = "0.1.0"
 edition = "2024"
 publish = false
-authors = ["Pactus blockchain <admin@pactus.org>"]
+authors = ["Pactus blockchain <info@pactus.org>"]
 
 [dependencies]
 kelk = { path = "../../crates/kelk" }

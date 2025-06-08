@@ -1,8 +1,9 @@
-use crate::erc20::ERC20;
-use crate::error::Error;
-use crate::message::{InstantiateMsg, ProcMsg, QueryMsg, QueryRsp};
-use kelk::context::Context;
-use kelk::kelk_entry;
+use crate::{
+    erc20::ERC20,
+    error::Error,
+    message::{InstantiateMsg, ProcMsg, QueryMsg, QueryRsp},
+};
+use kelk::{context::Context, kelk_entry};
 
 /*
 instantiate creates a new contract and deployment code.

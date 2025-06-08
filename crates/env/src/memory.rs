@@ -63,7 +63,7 @@ impl Pointer {
     /// Warning: only use this when you are sure the caller will never use (or free) the pointer
     /// later
     pub unsafe fn to_slice<'a>(&self) -> &'a [u8] {
-        core::slice::from_raw_parts(self.ptr, self.len as usize)
+        unsafe {core::slice::from_raw_parts(self.ptr, self.len as usize)}
     }
 }
 

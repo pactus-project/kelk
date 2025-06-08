@@ -28,7 +28,6 @@ impl<'a> StorageString<'a> {
         self.vec.offset()
     }
 
-
     /// Returns the length of the `StorageString`.
     pub fn len(&self) -> usize {
         self.vec.len()

@@ -1,10 +1,10 @@
 use crate::error::Error;
-use kelk::blockchain::address::{Address, ADDRESS_ZERO};
-use kelk::context::Context;
-use kelk::storage::bst::StorageBST;
-use kelk::storage::codec::Codec;
-use kelk::storage::str::StorageString;
-use kelk::Codec;
+use kelk::{
+    Codec,
+    blockchain::address::{ADDRESS_ZERO, Address},
+    context::Context,
+    storage::{bst::StorageBST, codec::Codec, str::StorageString},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Codec)]
 struct PairAddress(Address, Address);
@@ -118,14 +118,14 @@ impl<'a> ERC721<'a> {
 
         let balance = self.balances.find(&owner)?.unwrap_or(0);
         if balance.ne(&0) {
-            self._approved(&to, token_id)?;
+            self._approved(to, token_id)?;
         }
         Ok(())
     }
 
     fn _approved(&mut self, to: &Address, token_id: &i64) -> Result<(), Error> {
         if to.ne(&ADDRESS_ZERO) {
-            self.token_approvals.insert(token_id.clone(), to.clone())?;
+            self.token_approvals.insert(*token_id, to.clone())?;
             Ok(())
         } else {
             Err(Error::InvalidMsg)
@@ -157,10 +157,8 @@ impl<'a> ERC721<'a> {
         operator: &Address,
         approved: &bool,
     ) -> Result<(), Error> {
-        self.operator_approvals.insert(
-            PairAddress(owner.clone(), operator.clone()),
-            approved.clone(),
-        )?;
+        self.operator_approvals
+            .insert(PairAddress(owner.clone(), operator.clone()), *approved)?;
         Ok(())
     }
 
@@ -192,14 +190,14 @@ impl<'a> ERC721<'a> {
         self.balances.insert(to.clone(), rx_balance + 1)?;
 
         // self.owners.offset(token_id, from.clone())?;
-        self.owners.insert(token_id.clone(), to.clone())?;
+        self.owners.insert(*token_id, to.clone())?;
 
         Ok(())
     }
 
     pub fn mint(&mut self, addr: &Address, token_id: &i64) -> Result<(), Error> {
         if addr.ne(&ADDRESS_ZERO) {
-            self.owners.insert(token_id.clone(), addr.clone())?;
+            self.owners.insert(*token_id, addr.clone())?;
 
             let tx_balance = self.balances.find(addr).unwrap().unwrap_or(0);
             self.balances.insert(addr.clone(), tx_balance + 1)?;
@@ -207,7 +205,7 @@ impl<'a> ERC721<'a> {
         Ok(())
     }
 
-    pub fn burn(&mut self, addr: &Address, token_id: &i64) -> Result<(), Error> {
+    pub fn burn(&mut self, _addr: &Address, _token_id: &i64) -> Result<(), Error> {
         // if addr.ne(&ADDRESS_ZERO) {
         //     let acc_balance = self.balance_of(addr)?;
         //     if acc_balance.lt(amount) {

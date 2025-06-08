@@ -75,7 +75,7 @@ pub fn kelk_entry(
         r##"
         #[cfg(target_arch = "wasm32")]
         mod __wasm_export_{name} {{
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             extern "C" fn {name}(msg_ptr: u64) -> u64 {{
                 let ctx = kelk::context::OwnedContext {{
                     storage: kelk::storage::Storage::{method}(kelk::alloc::boxed::Box::new(kelk::Kelk::new()))

@@ -14,7 +14,7 @@ use minicbor::{Decode, Encode};
 
 #[cfg(not(test))]
 #[link(wasm_import_module = "pactus")]
-extern "C" {
+unsafe extern "C" {
     /// writes data at given offset of storage file.
     ///
     /// # Arguments
@@ -181,18 +181,15 @@ mod tests {
     use crate::alloc::vec;
     use wasm_bindgen_test::*;
 
-    // Uncomment this test if should_panic supported by wasm_bindgen_test.
-    // https://github.com/rustwasm/wasm-bindgen/issues/2286
-    //
-    // #[wasm_bindgen_test]
-    // #[should_panic]
-    // fn test_allocation() {
-    //     let ptr = allocate(1);
-    //     deallocate(ptr);
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_allocation() {
+        let ptr = allocate(1);
+        deallocate(ptr);
 
-    //     // Should panic here, because the pointer is freed before
-    //     deallocate(ptr);
-    // }
+        // Should panic here, because the pointer is freed before
+        deallocate(ptr);
+    }
 
     #[wasm_bindgen_test]
     fn test_instantiate() {

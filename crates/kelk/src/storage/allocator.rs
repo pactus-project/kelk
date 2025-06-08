@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 use kelk_env::StorageAPI;
 
 #[derive(Debug, Clone)]
- struct Deallocated {
+struct Deallocated {
     pub offset: Offset,
     pub freed_offset: Offset,
     pub freed_length: u32,
