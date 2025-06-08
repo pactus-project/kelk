@@ -1,15 +1,14 @@
 //! Mocking the blockchain for testing purpose
 
-use super::address::{Address, ADDRESS_SIZE};
-use super::Blockchain;
-use super::PARAM_ID_TRANSACTION_SIGNER;
-use alloc::vec::Vec;
-use alloc::{boxed::Box, collections::BTreeMap};
-use core::any::Any;
-use core::result::Result;
+use super::{
+    Blockchain,
+    PARAM_ID_TRANSACTION_SIGNER,
+    address::{ADDRESS_SIZE, Address},
+};
+use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+use core::{any::Any, result::Result};
 use kelk_env::{BlockchainAPI, HostError};
-use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 /// mocks the blockchain for testing purpose.
 pub struct MockBlockchain {

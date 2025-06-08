@@ -3,17 +3,16 @@
 //! `StorageHashTable` is an implementation of hash table that instead of using
 //! Random Access Memory (RAM), it uses storage file. Therefore it's permanently
 //! stored inside contract's storage.
-//!
 
 mod header;
 
 use self::header::Header;
-use super::{bst, OFFSET_SIZE};
-use crate::storage::codec::Codec;
-use crate::storage::error::Error;
-use crate::storage::{Offset, Storage};
-use core::hash::{Hash, Hasher};
-use core::marker::PhantomData;
+use super::{OFFSET_SIZE, bst};
+use crate::storage::{Offset, Storage, codec::Codec, error::Error};
+use core::{
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
 
 fn compute_hash<K: Hash>(key: &K) -> u32 {
     let mut state = fnv::FnvHasher::default();
@@ -71,19 +70,16 @@ where
     }
 
     /// Returns the offset of `StorageHashTable` in the storage file.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn offset(&self) -> Offset {
         self.header_offset
     }
 
     /// Returns the number of elements in the `StorageHashTable`.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn len(&self) -> u32 {
         self.header.items
     }
 
     /// Returns `true` if the `StorageHashTable` contains no elements.
-    #[cfg_attr(feature = "inline-more", inline)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

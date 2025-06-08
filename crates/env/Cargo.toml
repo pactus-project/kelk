@@ -1,16 +1,15 @@
 [package]
 name = "kelk-env"
 version = "0.4.0"
-edition = "2021"
+edition = "2024"
 authors = ["Pactus blockchain <admin@pactus.org>"]
 license = "BSD-3-Clause-Clear"
 homepage = "https://pactus.org/"
 repository = "https://github.com/pactus-project/kelk"
 description = "Kelk-env is a Low-level interface for interacting with Tanour (Wasm executor) in Pactus blockchain."
 
-
 [dependencies]
-minicbor = { version = "0.18", features = ["half", "derive", "alloc"] }
+minicbor = { version = "1.0", features = ["half", "derive", "alloc"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

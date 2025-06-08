@@ -1,9 +1,7 @@
 //! Address type for representing actor address
 use super::error::Error;
-use crate::storage::codec::Codec;
-use crate::Codec;
-use core::cmp::PartialOrd;
-use core::result::Result;
+use crate::{Codec, storage::codec::Codec};
+use core::{cmp::PartialOrd, result::Result};
 
 /// Address type
 pub const ADDRESS_SIZE: usize = 21;

@@ -1,10 +1,9 @@
 //! Kelk-allocator providing memory allocator support for smart contracts in [Pactus](https://pactus.org/) blockchain.
-//!
 #![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
 // #![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
 
 // Use `wee_alloc` as the global allocator.
-// #[cfg(no_std)]
+#[cfg(no_std)]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 

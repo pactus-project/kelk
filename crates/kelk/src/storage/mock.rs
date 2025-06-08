@@ -1,8 +1,7 @@
 //! Mocking the storage for testing purpose
 
 use super::{Offset, Storage};
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use core::{any::Any, cell::RefCell, result::Result};
 use kelk_env::{HostError, StorageAPI};
 

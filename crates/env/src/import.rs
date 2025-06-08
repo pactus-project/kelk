@@ -3,9 +3,11 @@
 //! Contract actors can call this imported function to interact with the
 //! blockchain and the storage file.
 
-use crate::api::{BlockchainAPI, StorageAPI};
-use crate::error::HostError;
-use crate::memory::Pointer;
+use crate::{
+    api::{BlockchainAPI, StorageAPI},
+    error::HostError,
+    memory::Pointer,
+};
 use alloc::vec::Vec;
 use core::any::Any;
 use minicbor::{Decode, Encode};

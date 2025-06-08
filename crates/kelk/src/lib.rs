@@ -1,5 +1,4 @@
 //! Kelk-lib is the standard library for wasm based contracts in [Pactus](https://pactus.org) blockchain.
-//!
 #![no_std]
 #![deny(
     missing_docs,
@@ -11,7 +10,6 @@
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    private_in_public,
     unconditional_recursion,
     unused_allocation,
     unused_comparisons,
@@ -29,7 +27,7 @@ pub mod context;
 pub mod mock;
 pub mod storage;
 
-pub use kelk_derive::{kelk_entry, Codec};
+pub use kelk_derive::{Codec, kelk_entry};
 
 #[cfg(target_arch = "wasm32")]
 pub use kelk_env::import::*;

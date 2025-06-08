@@ -2,7 +2,6 @@
 //!
 //! In Kelk all multi-byte values are encoded in network byte order
 //! (that is, most significant byte first, also known as "big-endian").
-//!
 
 /// `Codec` trait defines functions to serialize types as bytes and deserialize from bytes
 /// in big-endian (network) byte order.
@@ -10,10 +9,12 @@ pub trait Codec {
     /// Borrows `self` and pack into `bytes` using big-endian representation.
     const PACKED_LEN: u32;
 
-    /// Returns the memory representation of this type as a byte array in big-endian (network) byte order.
+    /// Returns the memory representation of this type as a byte array in big-endian (network) byte
+    /// order.
     fn to_bytes(&self, bytes: &mut [u8]);
 
-    /// Creates a native endian value from its representation as a byte array in big-endian (network) byte order.
+    /// Creates a native endian value from its representation as a byte array in big-endian
+    /// (network) byte order.
     fn from_bytes(bytes: &[u8]) -> Self;
 }
 

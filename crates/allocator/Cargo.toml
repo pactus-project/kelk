@@ -1,13 +1,12 @@
 [package]
 name = "kelk-allocator"
 version = "0.4.0"
-edition = "2021"
+edition = "2024"
 authors = ["Pactus blockchain <admin@pactus.org>"]
 license = "BSD-3-Clause-Clear"
 homepage = "https://pactus.org/"
 repository = "https://github.com/pactus-project/kelk"
 description = "Kelk-allocator providing memory allocator support for smart contracts in Pactus blockchain."
-
 
 [dependencies]
 wee_alloc = { version = "0.4", default-features = false }

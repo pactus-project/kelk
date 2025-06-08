@@ -1,6 +1,7 @@
-use crate::storage::codec::Codec;
-use crate::storage::Offset;
-use crate::Codec;
+use crate::{
+    Codec,
+    storage::{Offset, codec::Codec},
+};
 
 #[derive(Debug, Clone, Codec)]
 pub(super) struct Node<K: Codec + Clone + Ord, V: Clone + Codec> {

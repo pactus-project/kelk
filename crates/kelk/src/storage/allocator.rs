@@ -1,11 +1,11 @@
+use super::Offset;
 /// TODO: refactor this code.
 use super::error::Error;
-use super::Offset;
 use alloc::boxed::Box;
 use kelk_env::StorageAPI;
 
 #[derive(Debug, Clone)]
-pub(self) struct Deallocated {
+ struct Deallocated {
     pub offset: Offset,
     pub freed_offset: Offset,
     pub freed_length: u32,
@@ -254,7 +254,7 @@ impl Allocator {
 pub mod tests {
     use super::*;
 
-    use crate::storage::{mock::mock_storage, Storage};
+    use crate::storage::{Storage, mock::mock_storage};
 
     fn check_deallocated_items(storage: &Storage, items: &[(Offset, Offset, u32)]) {
         let allocator = Allocator::load(storage.api.as_ref(), 0).unwrap();

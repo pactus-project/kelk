@@ -1,5 +1,5 @@
-//! Kelk-env is a Low-level interface for interacting with Tanour (Wasm executor) in Pactus blockchain.
-//!
+//! Kelk-env is a Low-level interface for interacting with Tanour (Wasm executor) in Pactus
+//! blockchain.
 #![no_std]
 #![deny(
     missing_docs,
@@ -11,7 +11,6 @@
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    private_in_public,
     unconditional_recursion,
     unused_allocation,
     unused_comparisons,
@@ -25,8 +24,7 @@
 pub mod api;
 pub mod error;
 
-pub use api::BlockchainAPI;
-pub use api::StorageAPI;
+pub use api::{BlockchainAPI, StorageAPI};
 pub use error::HostError;
 
 #[cfg(target_arch = "wasm32")]

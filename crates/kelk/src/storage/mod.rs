@@ -17,14 +17,9 @@ pub type Offset = u32;
 /// is the size of offset in bytes.
 const OFFSET_SIZE: u32 = 4;
 
-use self::allocator::Allocator;
-use self::codec::Codec;
-use self::error::Error;
-use alloc::boxed::Box;
-use alloc::string::ToString;
-use alloc::vec::Vec;
-use core::cell::RefCell;
-use core::result::Result;
+use self::{allocator::Allocator, codec::Codec, error::Error};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{cell::RefCell, result::Result};
 use kelk_env::StorageAPI;
 
 macro_rules! impl_num {
@@ -147,12 +142,12 @@ impl Storage {
         Ok((stack_index as u32 * Offset::PACKED_LEN) + header_size)
     }
 
-    ///
+    /// Fills the stack at the specified `stack_index` with the given `offset`.
     pub fn fill_stack_at(&self, stack_index: u16, offset: Offset) -> Result<(), Error> {
         self.write_u32(self.stack_offset(stack_index)?, &offset)
     }
 
-    ///
+    /// Reads the offset value stored at the specified `stack_index` in the stack.
     pub fn read_stack_at(&self, stack_index: u16) -> Result<Offset, Error> {
         self.read_u32(self.stack_offset(stack_index)?)
     }
@@ -204,11 +199,13 @@ impl Storage {
 }
 
 #[cfg(test)]
+/// Tests for the storage module.
 pub mod tests {
     use super::Storage;
-    use crate::storage::codec::Codec;
-    use crate::storage::mock::mock_storage;
-    use crate::Codec;
+    use crate::{
+        Codec,
+        storage::{codec::Codec, mock::mock_storage},
+    };
 
     #[test]
     fn test_storage_load() {

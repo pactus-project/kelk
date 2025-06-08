@@ -1,5 +1,4 @@
-use crate::alloc;
-use crate::alloc::vec::Vec;
+use crate::{alloc, alloc::vec::Vec};
 
 /// defines a pointer to the allocated space in Wasm's linear memory.
 pub struct Pointer {
@@ -61,7 +60,8 @@ impl Pointer {
     }
 
     /// forms a slice from a pointer and a length.
-    /// Warning: only use this when you are sure the caller will never use (or free) the pointer later
+    /// Warning: only use this when you are sure the caller will never use (or free) the pointer
+    /// later
     pub unsafe fn to_slice<'a>(&self) -> &'a [u8] {
         core::slice::from_raw_parts(self.ptr, self.len as usize)
     }

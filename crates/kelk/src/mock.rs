@@ -1,9 +1,9 @@
 //! Mocking the `Context` for testing purpose
 
 use crate::{
-    blockchain::{mock::MockBlockchain, Blockchain},
+    blockchain::{Blockchain, mock::MockBlockchain},
     context::Context,
-    storage::{mock::MockStorage, Storage},
+    storage::{Storage, mock::MockStorage},
 };
 
 /// `MockContext` owns the mocked instances.
