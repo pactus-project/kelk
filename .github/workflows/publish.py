@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 
 
 def get_latest_release_version():
-    """Get the lastest release version.
+    """Get the latest release version.
     The version extracts from the most recent git tag.
     Git tag should start with `v` following the semver."""
     try:
