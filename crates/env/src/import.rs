@@ -178,12 +178,15 @@ pub unsafe fn get_param(_param_id: u32, _ptr: *mut u32, _len: *mut u32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alloc::vec;
+    use crate::{
+        alloc::vec,
+        export::{allocate, deallocate},
+    };
     use wasm_bindgen_test::*;
 
     #[wasm_bindgen_test]
     #[should_panic]
-    fn test_allocation() {
+    fn test_panic_allocation() {
         let ptr = allocate(1);
         deallocate(ptr);
 

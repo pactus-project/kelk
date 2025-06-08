@@ -14,7 +14,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 /// raise a `trap` the WebAssembly execution if we panic at runtime.
 #[cfg(feature = "no-std")]
 #[panic_handler]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
     ::core::intrinsics::abort();
 }
@@ -23,7 +23,7 @@ pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
 /// the execution with trap.
 #[cfg(feature = "no-std")]
 #[alloc_error_handler]
-#[no_mangle]
+#[unsafe(no_mangle)]
 fn oom(_: core::alloc::Layout) -> ! {
     ::core::intrinsics::abort();
 }
@@ -31,5 +31,5 @@ fn oom(_: core::alloc::Layout) -> ! {
 /// Needed for non-wasm targets.
 #[cfg(feature = "no-std")]
 #[lang = "eh_personality"]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn eh_personality() {}

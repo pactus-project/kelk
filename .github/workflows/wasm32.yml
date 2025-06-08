@@ -25,6 +25,5 @@ jobs:
           cd crates/env
           rustup run nightly $HOME/.cargo/bin/wasm-pack test --node
 
-
       - name: Clippy check (wasm-32)
         run: cargo +nightly clippy --target wasm32-unknown-unknown --all-features -- -D warnings
