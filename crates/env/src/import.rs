@@ -48,8 +48,6 @@ unsafe extern "C" {
     fn get_param(param_id: u32, ptr: *mut u32, len: *mut u32) -> i32;
 }
 
-/// TODO: rename it to API or ExternalAPI or Externality
-
 /// The instant of Kelk.
 pub struct Kelk {}
 
