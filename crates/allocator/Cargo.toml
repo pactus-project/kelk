@@ -10,7 +10,3 @@ description = "Kelk-allocator providing memory allocator support for smart contr
 
 [dependencies]
 wee_alloc = { version = "0.4", default-features = false }
-
-[features]
-default = []
-no-std = []

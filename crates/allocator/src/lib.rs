@@ -1,18 +1,16 @@
+#![allow(unexpected_cfgs)]
+
 //! Kelk-allocator providing memory allocator support for smart contracts in [Pactus](https://pactus.org/) blockchain.
-#![cfg_attr(
-    feature = "no-std",
-    feature(core_intrinsics, lang_items, alloc_error_handler)
-)]
+#![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
 
 // Use `wee_alloc` as the global allocator.
-#[cfg(feature = "no-std")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 /// Need to provide a tiny `panic` implementation for `#![no_std]`.
 /// This translates into an `unreachable` instruction that will
 /// raise a `trap` the WebAssembly execution if we panic at runtime.
-#[cfg(feature = "no-std")]
+#[cfg(no_std)]
 #[panic_handler]
 #[unsafe(no_mangle)]
 pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
@@ -21,7 +19,7 @@ pub fn panic(_info: &::core::panic::PanicInfo) -> ! {
 
 /// Need to provide an allocation error handler which just aborts
 /// the execution with trap.
-#[cfg(feature = "no-std")]
+#[cfg(no_std)]
 #[alloc_error_handler]
 #[unsafe(no_mangle)]
 fn oom(_: core::alloc::Layout) -> ! {
@@ -29,7 +27,7 @@ fn oom(_: core::alloc::Layout) -> ! {
 }
 
 /// Needed for non-wasm targets.
-#[cfg(feature = "no-std")]
+#[cfg(no_std)]
 #[lang = "eh_personality"]
 #[unsafe(no_mangle)]
 pub extern "C" fn eh_personality() {}
