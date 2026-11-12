@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- Replaced the unmaintained `wee_alloc` with `dlmalloc` as the global allocator.
+
 ## Version 0.4.0
 
 - Improved the performance of the `Codec` by implementing zero-copy conversion for `from_bytes` and `to_bytes` functions.

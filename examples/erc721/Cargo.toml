@@ -8,7 +8,6 @@ edition = "2024"
 [dependencies]
 kelk = { path = "../../crates/kelk" }
 minicbor = { version = "1.0", features = ["half", "derive"] }
-wee_alloc = { version = "0.4", default-features = false }
 rand="0.3.14"
 
 [lib]

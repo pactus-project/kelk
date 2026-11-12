@@ -9,4 +9,4 @@ repository = "https://github.com/pactus-project/kelk"
 description = "Kelk-allocator providing memory allocator support for smart contracts in Pactus blockchain."
 
 [dependencies]
-wee_alloc = { version = "0.4", default-features = false }
+dlmalloc = { version = "0.2", features = ["global"] }

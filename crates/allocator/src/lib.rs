@@ -3,9 +3,10 @@
 //! Kelk-allocator providing memory allocator support for smart contracts in [Pactus](https://pactus.org/) blockchain.
 #![cfg_attr(no_std, feature(core_intrinsics, lang_items, alloc_error_handler))]
 
-// Use `wee_alloc` as the global allocator.
+// Use `dlmalloc` as the global allocator. It is maintained and is the same
+// allocator that the Rust standard library uses on `wasm32` targets.
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 /// Need to provide a tiny `panic` implementation for `#![no_std]`.
 /// This translates into an `unreachable` instruction that will
